@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CELI · HOLOGRAM | HAND TRACKING · IMAGEN · IA</title>
+    <!-- Three.js para renderizado 3D de alta performance -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- MediaPipe Hands para seguimiento real de manos -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    
+    <style>
+        :root {
+            --primary: #00ffff;
+            --secondary: #ff00ff;
+            --bg-dark: rgba(0, 5, 15, 0.85);
+            --glass: rgba(0, 255, 255, 0.1);
+        }
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            color: var(--primary);
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            user-select: none;
+        }
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        #input_video {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            width: 160px;
+            height: 120px;
+            z-index: 5;
+            border: 1px solid var(--primary);
+            border-radius: 4px;
+            opacity: 0.7;
+            display: none;
+            transform: scaleX(-1); /* Efecto espejo */
+        }
+        .ui-panel {
+            position: absolute;
+            z-index: 10;
+            background: var(--bg-dark);
+            border: 1px solid var(--primary);
+            padding: 12px;
+            border-radius: 6px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.15);
+        }
+        .top-left { top: 10px; left: 10px; width: 260px; }
+        .bottom-controls { 
+            bottom: 10px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            display: flex; 
+            gap: 15px; 
+            align-items: flex-end;
+        }
+        .right-panel {
+            top: 10px;
+            right: 10px;
+            width: 220px;
+            text-align: right;
+        }
+        h1 {
+            margin: 0 0 5px 0;
+            font-size: 18px;
+            letter-spacing: 3px;
+            text-shadow: 0 0 10px var(--primary);
+            border-bottom: 1px solid var(--glass);
+            padding-bottom: 5px;
+        }
+        h2 {
+            margin: 10px 0 5px 0;
+            font-size: 12px;
+            color: var(--secondary);
+            letter-spacing: 1px;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 4px 0;
+            font-size: 12px;
+        }
+        .stat-val { color: #fff; font-weight: bold; }
+        
+        button, .file-label {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid var(--primary);
+            color: #fff;
+            padding: 6px 10px;
+            margin: 3px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            display: inline-block;
+            text-align: center;
+        }
+        button:hover, .file-label:hover {
+            background: var(--primary);
+            color: #000;
+            box-shadow: 0 0 15px var(--primary);
+        }
+        button.active {
+            background: var(--secondary);
+            border-color: var(--secondary);
+            color: #fff;
+            box-shadow: 0 0 15px var(--secondary);
+        }
+        .shape-btn { font-size: 16px; padding: 4px 8px; }
+        
+        .slider-group {
+            margin: 8px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .slider-group label { font-size: 11px; flex: 1; text-align: left; }
+        .slider-group input { flex: 1; margin: 0 8px; accent-color: var(--primary); }
+        .slider-group span { width: 35px; text-align: right; font-size: 11px; color: #fff; }
+        
+        #ai-status {
+            margin-top: 10px;
+            padding: 5px;
+            background: rgba(255, 0, 255, 0.1);
+            border-left: 3px solid var(--secondary);
+            font-size: 11px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; text-shadow: 0 0 8px var(--secondary); }
+        }
+        input[type="file"] { display: none; }
+        
+        .action-group { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
+    </style>
+</head>
+<body>
+
+    <video id="input_video" playsinline></video>
+    <div id="canvas-container"></div>
+
+    <!-- Panel Superior Izquierdo: Info y Stats -->
+    <div class="ui-panel top-left">
+        <h1>CELI · HOLOGRAM</h1>
+        <div style="font-size: 11px; margin-bottom: 10px; color: var(--secondary);">▼✋ HAND TRACKING · IMAGEN · IA</div>
+        
+        <div class="stat-row"><span>FPS</span><span class="stat-val" id="fps">0</span></div>
+        <div class="stat-row"><span>PTS</span><span class="stat-val" id="pts">8000</span></div>
+        <div class="stat-row"><span>T</span><span class="stat-val" id="time">0s</span></div>
+        
+        <div style="margin-top: 15px; border-top: 1px solid var(--glass); padding-top: 10px;">
+            <label class="file-label" for="img-upload">🖼 CARGAR IMAGEN 3D</label>
+            <input type="file" id="img-upload" accept="image/*">
+            <button id="btn-cam" style="width: 100%; margin-top: 5px;">📷 ACTIVAR HAND TRACKING</button>
+        </div>
+        
+        <div id="ai-status">INICIANDO... ——</div>
+    </div>
+
+    <!-- Panel Derecho: Parámetros -->
+    <div class="ui-panel right-panel">
+        <h2>◈ PARÁMETROS</h2>
+        <div class="slider-group">
+            <label>ROTACIÓN</label>
+            <input type="range" id="rot" min="0" max="2" step="0.1" value="0.6">
+            <span id="rot-val">.6</span>
+        </div>
+        <div class="slider-group">
+            <label>DENSIDAD</label>
+            <input type="range" id="dens" min="1000" max="10000" step="1000" value="8000">
+            <span id="dens-val">8K</span>
+        </div>
+        <div class="slider-group">
+            <label>FUERZA</label>
+            <input type="range" id="fuerza" min="0.5" max="5" step="0.5" value="2">
+            <span id="fuerza-val">2</span>
+        </div>
+    </div>
+
+    <!-- Controles Inferiores: Acciones y Formas -->
+    <div class="ui-panel bottom-controls">
+        <div style="text-align: center;">
+            <h2>◈ ACCIONES</h2>
+            <div class="action-group">
+                <button id="act-armar" class="active">▶ ARMAR</button>
+                <button id="act-atraer">🌀 ATRAER</button>
+                <button id="act-repeler">💥 REPELER</button>
+                <button id="act-giro">🌪 GIRO</button>
+                <button id="act-moldear">🖐 MOLDEAR</button>
+            </div>
+        </div>
+        
+        <div style="width: 1px; background: var(--glass); margin: 0 10px;"></div>
+        
+        <div style="text-align: center;">
+            <h2>◈ FIGURAS BASE</h2>
+            <div class="action-group">
+                <button class="shape-btn" onclick="setShape('sphere')" title="Esfera">◉</button>
+                <button class="shape-btn" onclick="setShape('torus')" title="Toroide">◎</button>
+                <button class="shape-btn" onclick="setShape('cube')" title="Cubo">◻</button>
+                <button class="shape-btn" onclick="setShape('dna')" title="ADN">🧬</button>
+                <button class="shape-btn" onclick="setShape('galaxy')" title="Galaxia">🌀</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- VARIABLES GLOBALES ---
+        let scene, camera, renderer, particles;
+        let particleCount = 8000;
+        let posArray, tgtArray, colArray, velArray, geom;
+        
+        let currentMode = 'ARMAR';
+        let rotSpeed = 0.6;
+        let fuerza = 2.0;
+        
+        let handX = 0, handY = 0, handZ = 0;
+        let handActive = false;
+        let isHandDetected = false;
+        
+        let frames = 0, lastTime = Date.now(), startTime = Date.now();
+
+        // --- INICIALIZACIÓN THREE.JS ---
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.z = 8;
+
+            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            rebuildGeometry(particleCount);
+            setShape('sphere');
+            animate();
+        }
+
+        // --- MOTOR DE GEOMETRÍA Y PARTÍCULAS ---
+        function rebuildGeometry(count) {
+            particleCount = count;
+            if (particles) scene.remove(particles);
+            
+            geom = new THREE.BufferGeometry();
+            posArray = new Float32Array(count * 3);
+            tgtArray = new Float32Array(count * 3);
+            colArray = new Float32Array(count * 3);
+            velArray = new Float32Array(count * 3);
+            
+            for (let i = 0; i < count; i++) {
+                const i3 = i * 3;
+                posArray[i3] = (Math.random() - 0.5) * 20;
+                posArray[i3+1] = (Math.random() - 0.5) * 20;
+                posArray[i3+2] = (Math.random() - 0.5) * 20;
+                
+                tgtArray[i3] = posArray[i3];
+                tgtArray[i3+1] = posArray[i3+1];
+                tgtArray[i3+2] = posArray[i3+2];
+                
+                colArray[i3] = 0; colArray[i3+1] = 1; colArray[i3+2] = 1; // Cyan por defecto
+                velArray[i3] = 0; velArray[i3+1] = 0; velArray[i3+2] = 0;
+            }
+            
+            geom.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+            geom.setAttribute('color', new THREE.BufferAttribute(colArray, 3));
+            
+            const material = new THREE.PointsMaterial({
+                size: 0.06,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.9,
+                blending: THREE.AdditiveBlending,
+                sizeAttenuation: true
+            });
+            
+            particles = new THREE.Points(geom, material);
+            scene.add(particles);
+            
+            document.getElementById('pts').innerText = (count >= 1000 ? (count/1000) + 'K' : count);
+        }
+
+        function setShape(shape) {
+            document.getElementById('ai-status').innerText = "GENERANDO FORMA: " + shape.toUpperCase();
+            const count = particleCount;
+            for (let i = 0; i < count; i++) {
+                const i3 = i * 3;
+                let x, y, z, r=0, g=1, b=1;
+                
+                if (shape === 'sphere') {
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos((Math.random() * 2) - 1);
+                    const rad = 3;
+                    x = rad * Math.sin(phi) * Math.cos(theta);
+                    y = rad * Math.sin(phi) * Math.sin(theta);
+                    z = rad * Math.cos(phi);
+                } else if (shape === 'cube') {
+                    x = (Math.random() - 0.5) * 6;
+                    y = (Math.random() - 0.5) * 6;
+                    z = (Math.random() - 0.5) * 6;
+                    r=1; g=0.2; b=1;
+                } else if (shape === 'dna') {
+                    const t = (i / count) * Math.PI * 12;
+                    const strand = i % 2 === 0 ? 1 : -1;
+                    x = Math.cos(t) * 2 * strand;
+                    y = (i / count) * 10 - 5;
+                    z = Math.sin(t) * 2 * strand;
+                    r=0; g=1; b=0.5;
+                } else if (shape === 'galaxy') {
+                    const angle = Math.random() * Math.PI * 10;
+                    const radius = Math.random() * 4;
+                    x = Math.cos(angle) * radius;
+                    y = (Math.random() - 0.5) * 0.8;
+                    z = Math.sin(angle) * radius;
+                    r=0.6; g=0; b=1;
+                } else { // torus
+                    const u = Math.random() * Math.PI * 2;
+                    const v = Math.random() * Math.PI * 2;
+                    x = (3 + 1 * Math.cos(v)) * Math.cos(u);
+                    y = (3 + 1 * Math.cos(v)) * Math.sin(u);
+                    z = 1 * Math.sin(v);
+                    r=1; g=0.6; b=0;
+                }
+                
+                tgtArray[i3] = x; tgtArray[i3+1] = y; tgtArray[i3+2] = z;
+                colArray[i3] = r; colArray[i3+1] = g; colArray[i3+2] = b;
+            }
+            geom.attributes.color.needsUpdate = true;
+            currentMode = 'ARMAR';
+            updateActiveButton('act-armar');
+        }
+
+        // --- PROCESAMIENTO DE IMAGEN A 3D ---
+        document.getElementById('img-upload').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            document.getElementById('ai-status').innerText = "ANALIZANDO IMAGEN...";
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const maxDim = 120; // Resolución de muestreo
+                const scale = Math.min(maxDim / img.width, maxDim / img.height);
+                canvas.width = img.width * scale;
+                canvas.height = img.height * scale;
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+                const targets = [], cols = [];
+                
+                for (let y = 0; y < canvas.height; y++) {
+                    for (let x = 0; x < canvas.width; x++) {
+                        const i = (y * canvas.width + x) * 4;
+                        if (imageData[i+3] > 128) { // Si el pixel es visible
+                            targets.push({
+                                x: (x - canvas.width/2) * 0.06,
+                                y: -(y - canvas.height/2) * 0.06,
+                                z: (Math.random() - 0.5) * 1.5
+                            });
+                            cols.push({
+                                r: imageData[i]/255,
+                                g: imageData[i+1]/255,
+                                b: imageData[i+2]/255
+                            });
+                        }
+                    }
+                }
+                
+                // Mezclar para que el ensamblaje sea orgánico
+                for (let i = targets.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [targets[i], targets[j]] = [targets[j], targets[i]];
+                    [cols[i], cols[j]] = [cols[j], cols[i]];
+                }
+                
+                // Aplicar a las partículas
+                const count = Math.min(particleCount, targets.length);
+                for (let i = 0; i < count; i++) {
+                    const i3 = i * 3;
+                    tgtArray[i3] = targets[i].x;
+                    tgtArray[i3+1] = targets[i].y;
+                    tgtArray[i3+2] = targets[i].z;
+                    colArray[i3] = cols[i].r;
+                    colArray[i3+1] = cols[i].g;
+                    colArray[i3+2] = cols[i].b;
+                }
+                
+                // Rellenar el resto con una esfera difusa
+                for (let i = count; i < particleCount; i++) {
+                    const i3 = i * 3;
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos((Math.random() * 2) - 1);
+                    const rad = 4 + Math.random() * 2;
+                    tgtArray[i3] = rad * Math.sin(phi) * Math.cos(theta);
+                    tgtArray[i3+1] = rad * Math.sin(phi) * Math.sin(theta);
+                    tgtArray[i3+2] = rad * Math.cos(phi);
+                    colArray[i3] = 0.2; colArray[i3+1] = 0.2; colArray[i3+2] = 0.2;
+                }
+                
+                geom.attributes.color.needsUpdate = true;
+                geom.attributes.position.needsUpdate = true;
+                currentMode = 'ARMAR';
+                updateActiveButton('act-armar');
+                document.getElementById('ai-status').innerText = "IMAGEN PROCESADA · PROYECCIÓN 3D LISTA";
+            };
+            img.src = URL.createObjectURL(file);
+        });
+
+        // --- BUCLE DE ANIMACIÓN Y FÍSICA ---
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Stats
+            frames++;
+            const now = Date.now();
+            if (now - lastTime >= 1000) {
+                document.getElementById('fps').innerText = frames;
+                frames = 0;
+                lastTime = now;
+                document.getElementById('time').innerText = ((now - startTime) / 1000).toFixed(0) + 's';
+            }
+            
+            const count = particleCount;
+            const f = fuerza;
+            
+            for (let i = 0; i < count; i++) {
+                const i3 = i * 3;
+                let fx = 0, fy = 0, fz = 0;
+                
+                // Interacción con la mano / mouse
+                if (handActive || isHandDetected) {
+                    const dx = handX - posArray[i3];
+                    const dy = handY - posArray[i3+1];
+                    const dz = handZ - posArray[i3+2];
+                    const dist = Math.sqrt(dx*dx + dy*dy + dz*dz) + 0.1;
+                    
+                    if (currentMode === 'ATRAER') {
+                        fx += dx * f * 0.015;
+                        fy += dy * f * 0.015;
+                        fz += dz * f * 0.015;
+                    } else if (currentMode === 'REPELER') {
+                        if (dist < 3.5) {
+                            fx -= (dx / dist) * f * 0.15;
+                            fy -= (dy / dist) * f * 0.15;
+                            fz -= (dz / dist) * f * 0.15;
+                        }
+                    } else if (currentMode === 'GIRO') {
+                        fx += -dy * f * 0.08;
+                        fy += dx * f * 0.08;
+                    } else if (currentMode === 'MOLDEAR') {
+                        if (dist < 2.5) {
+                            fx -= (dx / dist) * f * 0.08;
+                            fy -= (dy / dist) * f * 0.08;
+                        }
+                    }
+                }
+                
+                // Fuerza de retorno a la forma objetivo (ARMAR)
+                const spring = (currentMode === 'ARMAR') ? 0.06 : 0.025;
+                fx += (tgtArray[i3] - posArray[i3]) * spring;
+                fy += (tgtArray[i3+1] - posArray[i3+1]) * spring;
+                fz += (tgtArray[i3+2] - posArray[i3+2]) * spring;
+                
+                // Integración de velocidad con amortiguación
+                velArray[i3] += fx;
+                velArray[i3+1] += fy;
+                velArray[i3+2] += fz;
+                
+                velArray[i3] *= 0.88;
+                velArray[i3+1] *= 0.88;
+                velArray[i3+2] *= 0.88;
+                
+                posArray[i3] += velArray[i3];
+                posArray[i3+1] += velArray[i3+1];
+                posArray[i3+2] += velArray[i3+2];
+            }
+            
+            geom.attributes.position.needsUpdate = true;
+            
+            // Rotación automática del conjunto
+            if (rotSpeed > 0) {
+                particles.rotation.y += rotSpeed * 0.01;
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        // --- MEDIAPIPE HAND TRACKING ---
+        const videoElement = document.getElementById('input_video');
+        let hands;
+        let cameraUtils;
+
+        document.getElementById('btn-cam').addEventListener('click', async () => {
+            const btn = document.getElementById('btn-cam');
+            if (btn.innerText.includes('ACTIVAR')) {
+                try {
+                    btn.innerText = "⏳ CARGANDO IA...";
+                    
+                    hands = new Hands({locateFile: (file) => {
+                        return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+                    }});
+                    
+                    hands.setOptions({
+                        maxNumHands: 1,
+                        modelComplexity: 1,
+                        minDetectionConfidence: 0.6,
+                        minTrackingConfidence: 0.6
+                    });
+                    
+                    hands.onResults((results) => {
+                        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                            isHandDetected = true;
+                            const lm = results.multiHandLandmarks[0][8]; // Punta del índice
+                            handX = (1 - lm.x) * 10 - 5; // Mapear a espacio 3D
+                            handY = -(lm.y * 10 - 5);
+                            handZ = -lm.z * 5;
+                            handActive = true;
+                            
+                            document.getElementById('ai-status').innerText = "✋ MANO DETECTADA · INTERACTUANDO";
+                            document.getElementById('ai-status').style.color = "#0f0";
+                        } else {
+                            isHandDetected = false;
+                            handActive = false;
+                            document.getElementById('ai-status').innerText = "BUSCANDO MANO EN CÁMARA...";
+                            document.getElementById('ai-status').style.color = "var(--secondary)";
+                        }
+                    });
+                    
+                    cameraUtils = new Camera(videoElement, {
+                        onFrame: async () => {
+                            await hands.send({image: videoElement});
+                        },
+                        width: 320,
+                        height: 240
+                    });
+                    
+                    await cameraUtils.start();
+                    videoElement.style.display = 'block';
+                    btn.innerText = "📷 HAND TRACKING ON";
+                    btn.style.borderColor = "#0f0";
+                    btn.style.color = "#0f0";
+                    
+                } catch (err) {
+                    console.error(err);
+                    alert("No se pudo acceder a la cámara. Usando modo mouse como fallback.");
+                    btn.innerText = "🖱 MODO MOUSE ACTIVO";
+                    handActive = true; // Fallback a mouse
+                }
+            } else {
+                // Detener
+                if (cameraUtils) cameraUtils.stop();
+                videoElement.style.display = 'none';
+                btn.innerText = "📷 ACTIVAR HAND TRACKING";
+                btn.style.borderColor = "var(--primary)";
+                btn.style.color = "#fff";
+                isHandDetected = false;
+                handActive = false;
+                document.getElementById('ai-status').innerText = "SISTEMA EN ESPERA";
+            }
+        });
+
+        // Fallback a interacción con mouse si no hay cámara
+        window.addEventListener('mousemove', (e) => {
+            if (!isHandDetected && document.getElementById('btn-cam').innerText.includes('MOUSE')) {
+                handX = (e.clientX / window.innerWidth) * 10 - 5;
+                handY = -(e.clientY / window.innerHeight) * 10 + 5;
+                handZ = 0;
+                handActive = true;
+            }
+        });
+        window.addEventListener('mouseleave', () => { handActive = false; });
+
+        // --- BRIDGE: enviar comandos al engine C++ en localhost:8080 ---
+        const ENGINE_URL = 'http://localhost:8080/command';
+        let engineConnected = false;
+
+        function sendToEngine(action, shape) {
+            fetch(ENGINE_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: action || currentMode, force: fuerza, shape: shape || 'NONE' })
+            })
+            .then(() => {
+                if (!engineConnected) {
+                    engineConnected = true;
+                    document.getElementById('ai-status').innerText = "⚡ ENGINE C++ CONECTADO";
+                    document.getElementById('ai-status').style.color = "#0f0";
+                }
+            })
+            .catch(() => {
+                if (engineConnected) {
+                    engineConnected = false;
+                    document.getElementById('ai-status').innerText = "ENGINE C++ OFFLINE · MODO SOLO WEB";
+                    document.getElementById('ai-status').style.color = "var(--secondary)";
+                }
+            });
+        }
+
+        // Ping inicial al engine
+        sendToEngine('ARMAR', 'SPHERE');
+
+        // --- CONTROLES DE UI ---
+        function updateActiveButton(id) {
+            document.querySelectorAll('.action-group button').forEach(b => b.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        document.getElementById('act-armar').addEventListener('click', () => { currentMode = 'ARMAR'; updateActiveButton('act-armar'); sendToEngine('ARMAR'); });
+        document.getElementById('act-atraer').addEventListener('click', () => { currentMode = 'ATRAER'; updateActiveButton('act-atraer'); sendToEngine('ATRAER'); });
+        document.getElementById('act-repeler').addEventListener('click', () => { currentMode = 'REPELER'; updateActiveButton('act-repeler'); sendToEngine('REPELER'); });
+        document.getElementById('act-giro').addEventListener('click', () => { currentMode = 'GIRO'; updateActiveButton('act-giro'); sendToEngine('GIRO'); });
+        document.getElementById('act-moldear').addEventListener('click', () => { currentMode = 'MOLDEAR'; updateActiveButton('act-moldear'); sendToEngine('MOLDEAR'); });
+
+        document.getElementById('rot').addEventListener('input', (e) => {
+            rotSpeed = parseFloat(e.target.value);
+            document.getElementById('rot-val').innerText = rotSpeed.toFixed(1);
+        });
+
+        document.getElementById('fuerza').addEventListener('input', (e) => {
+            fuerza = parseFloat(e.target.value);
+            document.getElementById('fuerza-val').innerText = fuerza;
+            sendToEngine(currentMode); // notificar nueva fuerza al engine
+        });
+
+        document.getElementById('dens').addEventListener('change', (e) => {
+            const val = parseInt(e.target.value);
+            document.getElementById('dens-val').innerText = (val/1000) + 'K';
+            rebuildGeometry(val);
+            setShape('sphere');
+        });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Iniciar
+        init();
+    </script>
+</body>
+</html>

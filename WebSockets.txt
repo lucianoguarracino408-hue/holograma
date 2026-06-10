@@ -1,0 +1,1 @@
+{"action": "ATRAER", "force": 2.0, "shape": "HELIX"}

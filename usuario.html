@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CELI · USER PANEL</title>
+    <style>
+        :root {
+            --primary: #00ffff;
+            --secondary: #ff00ff;
+            --accent: #00ff88;
+            --warn: #ffaa00;
+            --danger: #ff3366;
+            --bg: #000a10;
+            --bg-dark: rgba(0, 5, 15, 0.92);
+            --glass: rgba(0, 255, 255, 0.08);
+            --glass-border: rgba(0, 255, 255, 0.25);
+            --limit: 15;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--primary);
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* === BACKGROUND GRID === */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,255,255,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* === SCAN LINE EFFECT === */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0,0,0,0.08) 2px,
+                rgba(0,0,0,0.08) 4px
+            );
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* === PARTICLES BG === */
+        #particles {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: var(--primary);
+            border-radius: 50%;
+            animation: floatUp linear infinite;
+            opacity: 0;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(100vh) scale(0); opacity: 0; }
+            10% { opacity: 0.6; }
+            90% { opacity: 0.2; }
+            100% { transform: translateY(-20px) scale(1); opacity: 0; }
+        }
+
+        /* === LAYOUT === */
+        .container {
+            position: relative;
+            z-index: 10;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* === PANEL BASE === */
+        .panel {
+            background: var(--bg-dark);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            backdrop-filter: blur(20px);
+            box-shadow:
+                0 0 40px rgba(0,255,255,0.1),
+                inset 0 0 40px rgba(0,255,255,0.02);
+            position: relative;
+            overflow: hidden;
+        }
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+            animation: scanH 3s linear infinite;
+        }
+        @keyframes scanH {
+            0% { opacity: 0.3; }
+            50% { opacity: 1; box-shadow: 0 0 8px var(--primary); }
+            100% { opacity: 0.3; }
+        }
+
+        /* === LOGIN PANEL === */
+        #login-screen {
+            width: 420px;
+            padding: 40px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+        .logo h1 {
+            font-size: 28px;
+            letter-spacing: 6px;
+            text-shadow: 0 0 20px var(--primary), 0 0 40px rgba(0,255,255,0.3);
+            animation: glow 2s ease-in-out infinite;
+        }
+        @keyframes glow {
+            0%, 100% { text-shadow: 0 0 15px var(--primary); }
+            50% { text-shadow: 0 0 30px var(--primary), 0 0 60px rgba(0,255,255,0.5); }
+        }
+        .logo .subtitle {
+            font-size: 11px;
+            color: var(--secondary);
+            letter-spacing: 3px;
+            margin-top: 5px;
+        }
+        .logo .dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+            margin: 8px auto;
+            box-shadow: 0 0 10px var(--accent);
+            animation: blink 1.5s ease-in-out infinite;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: var(--secondary);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+        .form-group input {
+            width: 100%;
+            background: rgba(0,255,255,0.05);
+            border: 1px solid var(--glass-border);
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s;
+        }
+        .form-group input:focus {
+            border-color: var(--primary);
+            background: rgba(0,255,255,0.1);
+            box-shadow: 0 0 15px rgba(0,255,255,0.15);
+        }
+        .form-group input::placeholder { color: rgba(0,255,255,0.3); }
+
+        .btn-primary {
+            width: 100%;
+            background: rgba(0,255,255,0.1);
+            border: 1px solid var(--primary);
+            color: #fff;
+            padding: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        .btn-primary:hover {
+            background: var(--primary);
+            color: #000;
+            box-shadow: 0 0 25px rgba(0,255,255,0.5);
+        }
+        .btn-primary:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .error-msg {
+            color: var(--danger);
+            font-size: 11px;
+            text-align: center;
+            margin-top: 10px;
+            min-height: 16px;
+            letter-spacing: 1px;
+        }
+
+        .register-link {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 11px;
+            color: rgba(0,255,255,0.5);
+        }
+        .register-link span {
+            color: var(--secondary);
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .register-link span:hover { color: var(--primary); }
+
+        /* === REGISTER PANEL === */
+        #register-screen {
+            width: 420px;
+            padding: 40px;
+            display: none;
+        }
+
+        /* === DASHBOARD === */
+        #dashboard-screen {
+            width: 900px;
+            padding: 0;
+            display: none;
+        }
+
+        .dash-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 30px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+        .dash-header h2 {
+            font-size: 16px;
+            letter-spacing: 4px;
+            text-shadow: 0 0 15px var(--primary);
+        }
+        .user-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+        }
+        .avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #000;
+            font-size: 14px;
+        }
+        .btn-logout {
+            background: rgba(255,51,102,0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            letter-spacing: 2px;
+            transition: all 0.3s;
+        }
+        .btn-logout:hover { background: var(--danger); color: #fff; }
+
+        .dash-body {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 0;
+            min-height: 480px;
+        }
+
+        .dash-left {
+            border-right: 1px solid var(--glass-border);
+            padding: 25px;
+        }
+        .dash-right {
+            padding: 25px;
+        }
+
+        /* === BALANCE CARD === */
+        .balance-card {
+            background: rgba(0,255,255,0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .balance-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+        .balance-label {
+            font-size: 10px;
+            letter-spacing: 3px;
+            color: var(--secondary);
+            margin-bottom: 8px;
+        }
+        .balance-amount {
+            font-size: 42px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 20px var(--primary);
+        }
+        .balance-amount span { font-size: 20px; color: var(--primary); }
+        .balance-limit {
+            font-size: 11px;
+            color: rgba(0,255,255,0.5);
+            margin-top: 6px;
+        }
+
+        /* === PROGRESS BAR === */
+        .progress-wrap {
+            margin-bottom: 20px;
+        }
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: rgba(0,255,255,0.6);
+            margin-bottom: 6px;
+        }
+        .progress-bar {
+            height: 6px;
+            background: rgba(0,255,255,0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            border: 1px solid var(--glass-border);
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.8s ease, background 0.3s;
+            position: relative;
+        }
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            right: 0; top: 0; bottom: 0;
+            width: 4px;
+            background: rgba(255,255,255,0.8);
+            box-shadow: 0 0 8px white;
+        }
+
+        /* === PAYMENT SECTION === */
+        .section-title {
+            font-size: 10px;
+            letter-spacing: 3px;
+            color: var(--secondary);
+            margin-bottom: 15px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--glass);
+            text-transform: uppercase;
+        }
+
+        .amount-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        .amount-btn {
+            background: rgba(0,255,255,0.05);
+            border: 1px solid var(--glass-border);
+            color: #fff;
+            padding: 10px 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            text-align: center;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        .amount-btn:hover, .amount-btn.selected {
+            background: rgba(0,255,255,0.15);
+            border-color: var(--primary);
+            box-shadow: 0 0 12px rgba(0,255,255,0.2);
+            color: var(--primary);
+        }
+        .amount-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .custom-amount {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        .custom-amount span {
+            font-size: 13px;
+            color: var(--primary);
+        }
+        .custom-amount input {
+            flex: 1;
+            background: rgba(0,255,255,0.05);
+            border: 1px solid var(--glass-border);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            outline: none;
+        }
+        .custom-amount input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(0,255,255,0.15);
+        }
+
+        .limit-warning {
+            background: rgba(255,170,0,0.1);
+            border: 1px solid rgba(255,170,0,0.4);
+            border-radius: 4px;
+            padding: 10px 14px;
+            font-size: 11px;
+            color: var(--warn);
+            margin-bottom: 15px;
+            display: none;
+        }
+        .limit-reached {
+            background: rgba(255,51,102,0.1);
+            border: 1px solid var(--danger);
+            border-radius: 4px;
+            padding: 12px 14px;
+            font-size: 11px;
+            color: var(--danger);
+            margin-bottom: 15px;
+            text-align: center;
+            display: none;
+            letter-spacing: 1px;
+        }
+
+        .btn-pay {
+            width: 100%;
+            background: linear-gradient(135deg, rgba(0,180,255,0.2), rgba(0,255,136,0.1));
+            border: 1px solid var(--accent);
+            color: #fff;
+            padding: 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn-pay:hover:not(:disabled) {
+            background: linear-gradient(135deg, rgba(0,255,136,0.3), rgba(0,200,255,0.2));
+            box-shadow: 0 0 25px rgba(0,255,136,0.3);
+            color: var(--accent);
+        }
+        .btn-pay:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .mp-logo {
+            font-size: 16px;
+        }
+
+        /* === TRANSACTION HISTORY === */
+        .tx-list {
+            max-height: 320px;
+            overflow-y: auto;
+        }
+        .tx-list::-webkit-scrollbar { width: 4px; }
+        .tx-list::-webkit-scrollbar-track { background: transparent; }
+        .tx-list::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 2px; }
+
+        .tx-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            margin-bottom: 6px;
+            background: rgba(0,255,255,0.04);
+            border: 1px solid rgba(0,255,255,0.1);
+            border-radius: 4px;
+            font-size: 12px;
+            animation: fadeIn 0.4s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+        .tx-item .tx-type {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tx-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .tx-item .tx-amount { font-weight: bold; }
+        .tx-item .tx-date { font-size: 10px; color: rgba(0,255,255,0.4); }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: rgba(0,255,255,0.3);
+            font-size: 12px;
+            letter-spacing: 2px;
+        }
+
+        /* === SUCCESS MODAL === */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--bg-dark);
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            padding: 35px;
+            width: 380px;
+            text-align: center;
+            box-shadow: 0 0 50px rgba(0,255,136,0.2);
+            animation: popIn 0.3s ease;
+        }
+        @keyframes popIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .modal .check { font-size: 48px; margin-bottom: 15px; }
+        .modal h3 { font-size: 16px; color: var(--accent); letter-spacing: 3px; margin-bottom: 10px; }
+        .modal p { font-size: 12px; color: rgba(0,255,255,0.7); margin-bottom: 20px; line-height: 1.6; }
+        .modal .btn-primary { width: auto; padding: 10px 30px; display: inline-block; }
+
+        /* === STATUS INDICATOR === */
+        .status-bar {
+            padding: 10px 30px;
+            border-top: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: rgba(0,255,255,0.4);
+            letter-spacing: 1px;
+        }
+        .status-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+            margin-right: 6px;
+            box-shadow: 0 0 6px var(--accent);
+            animation: blink 2s infinite;
+        }
+
+        /* === RESPONSIVE === */
+        @media (max-width: 950px) {
+            #dashboard-screen { width: 98vw; }
+            .dash-body { grid-template-columns: 1fr; }
+            .dash-left { border-right: none; border-bottom: 1px solid var(--glass-border); }
+        }
+        @media (max-width: 450px) {
+            #login-screen, #register-screen { width: 98vw; padding: 25px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Particles BG -->
+<div id="particles"></div>
+
+<!-- ===== LOGIN ===== -->
+<div class="container" id="app">
+
+    <div class="panel" id="login-screen">
+        <div class="logo">
+            <h1>CELI ·</h1>
+            <div class="subtitle">▼ USER ACCESS PANEL</div>
+            <div class="dot"></div>
+        </div>
+
+        <div class="form-group">
+            <label>◈ Usuario</label>
+            <input type="text" id="login-user" placeholder="ingresa tu usuario" autocomplete="off">
+        </div>
+        <div class="form-group">
+            <label>◈ Contraseña</label>
+            <input type="password" id="login-pass" placeholder="••••••••">
+        </div>
+
+        <button class="btn-primary" onclick="doLogin()">▶ INGRESAR</button>
+        <div class="error-msg" id="login-error"></div>
+
+        <div class="register-link">
+            ¿No tenés cuenta? <span onclick="showRegister()">Registrate acá</span>
+        </div>
+    </div>
+
+    <!-- ===== REGISTER ===== -->
+    <div class="panel" id="register-screen">
+        <div class="logo">
+            <h1>CELI ·</h1>
+            <div class="subtitle">▼ NUEVO USUARIO</div>
+            <div class="dot"></div>
+        </div>
+
+        <div class="form-group">
+            <label>◈ Nombre de usuario</label>
+            <input type="text" id="reg-user" placeholder="ej: yeison123" autocomplete="off">
+        </div>
+        <div class="form-group">
+            <label>◈ Email (opcional)</label>
+            <input type="email" id="reg-email" placeholder="tu@email.com">
+        </div>
+        <div class="form-group">
+            <label>◈ Contraseña</label>
+            <input type="password" id="reg-pass" placeholder="mínimo 4 caracteres">
+        </div>
+
+        <button class="btn-primary" onclick="doRegister()">▶ CREAR CUENTA</button>
+        <div class="error-msg" id="reg-error"></div>
+
+        <div class="register-link">
+            ¿Ya tenés cuenta? <span onclick="showLogin()">Iniciar sesión</span>
+        </div>
+    </div>
+
+    <!-- ===== DASHBOARD ===== -->
+    <div class="panel" id="dashboard-screen">
+
+        <div class="dash-header">
+            <h2>CELI · PANEL DE USUARIO</h2>
+            <div class="user-badge">
+                <div class="avatar" id="user-avatar">?</div>
+                <span id="user-display">—</span>
+                <button class="btn-logout" onclick="doLogout()">◀ SALIR</button>
+            </div>
+        </div>
+
+        <div class="dash-body">
+
+            <!-- IZQUIERDA: Saldo y Progreso -->
+            <div class="dash-left">
+                <div class="balance-card">
+                    <div class="balance-label">◈ SALDO DISPONIBLE</div>
+                    <div class="balance-amount">
+                        <span>$</span><span id="balance-val">0.00</span>
+                    </div>
+                    <div class="balance-limit">LÍMITE: $15.00 USD por usuario</div>
+                </div>
+
+                <div class="progress-wrap">
+                    <div class="progress-label">
+                        <span>USO DEL LÍMITE</span>
+                        <span id="progress-pct">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+                    </div>
+                </div>
+
+                <div class="section-title">◈ HISTORIAL DE RECARGAS</div>
+                <div class="tx-list" id="tx-list">
+                    <div class="empty-state">SIN MOVIMIENTOS AÚN</div>
+                </div>
+            </div>
+
+            <!-- DERECHA: Pago -->
+            <div class="dash-right">
+                <div class="section-title">◈ RECARGAR SALDO · MERCADO PAGO</div>
+
+                <div class="limit-warning" id="limit-warning">
+                    ⚠ ATENCIÓN: Esta recarga supera o alcanza el límite de $15 USD
+                </div>
+                <div class="limit-reached" id="limit-reached">
+                    ✕ LÍMITE ALCANZADO · $15.00 USD · No se permiten más recargas
+                </div>
+
+                <div id="pay-form">
+                    <p style="font-size:11px; color:rgba(0,255,255,0.5); margin-bottom:15px; letter-spacing:1px;">
+                        Seleccioná el monto a recargar (máximo acumulado: $15 USD por cuenta)
+                    </p>
+
+                    <div class="amount-selector" id="amount-buttons">
+                        <div class="amount-btn" onclick="selectAmount(1, event)">$1</div>
+                        <div class="amount-btn" onclick="selectAmount(3, event)">$3</div>
+                        <div class="amount-btn" onclick="selectAmount(5, event)">$5</div>
+                        <div class="amount-btn" onclick="selectAmount(10, event)">$10</div>
+                        <div class="amount-btn" onclick="selectAmount(15, event)">$15</div>
+                        <div class="amount-btn" id="custom-btn" onclick="focusCustom()">OTRO</div>
+                    </div>
+
+                    <div class="custom-amount">
+                        <span>$</span>
+                        <input type="number" id="custom-input" min="1" max="15" step="1"
+                            placeholder="monto personalizado (1-15)"
+                            oninput="onCustomInput(this.value)">
+                    </div>
+
+                    <button class="btn-pay" id="btn-pay" onclick="doPay()" disabled>
+                        <span class="mp-logo">💳</span>
+                        <span>PAGAR CON MERCADO PAGO · $<span id="pay-amount-label">0</span></span>
+                    </button>
+
+                    <p style="font-size:10px; color:rgba(0,255,255,0.3); margin-top:12px; letter-spacing:1px; text-align:center;">
+                        Al confirmar, serás redirigido a Mercado Pago para completar el pago seguro.
+                    </p>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="status-bar">
+            <span><span class="status-dot"></span> SISTEMA ACTIVO</span>
+            <span id="status-time">—</span>
+            <span>CELI · v1.0</span>
+        </div>
+
+    </div><!-- /dashboard -->
+
+</div><!-- /container -->
+
+<!-- Modal éxito -->
+<div class="modal-overlay" id="modal-success">
+    <div class="modal">
+        <div class="check">✓</div>
+        <h3>REDIRIGIENDO A PAGO</h3>
+        <p id="modal-msg">Se abrirá Mercado Pago en una nueva pestaña para completar el pago de <strong id="modal-amount">$0</strong>.<br><br>Una vez confirmado el pago, tu saldo se actualizará automáticamente.</p>
+        <button class="btn-primary" style="display:inline-block; width:auto; padding:10px 30px" onclick="closeModal()">◀ VOLVER AL PANEL</button>
+    </div>
+</div>
+
+<script>
+// ===========================
+// CONFIGURACIÓN
+// ===========================
+const LIMIT = 15;
+
+// ⚠ REEMPLAZÁ ESTA URL con tu link de pago de MercadoPago
+// Ejemplo: https://link.mercadopago.com.ar/tuusuario
+// Podés crear links de pago en https://www.mercadopago.com.ar/tools/link
+const MP_BASE_URL = "https://link.mercadopago.com.ar/TUUSUARIO";
+
+// ===========================
+// STORAGE (simulado con localStorage)
+// ===========================
+function getUsers() {
+    try { return JSON.parse(localStorage.getItem('celi_users') || '{}'); } catch { return {}; }
+}
+function saveUsers(u) { localStorage.setItem('celi_users', JSON.stringify(u)); }
+function getCurrentUser() { return localStorage.getItem('celi_current_user'); }
+function setCurrentUser(u) { localStorage.setItem('celi_current_user', u); }
+function clearCurrentUser() { localStorage.removeItem('celi_current_user'); }
+
+// ===========================
+// PANTALLAS
+// ===========================
+function showLogin() {
+    document.getElementById('login-screen').style.display = 'block';
+    document.getElementById('register-screen').style.display = 'none';
+    document.getElementById('dashboard-screen').style.display = 'none';
+    document.getElementById('login-error').textContent = '';
+}
+function showRegister() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('register-screen').style.display = 'block';
+    document.getElementById('dashboard-screen').style.display = 'none';
+    document.getElementById('reg-error').textContent = '';
+}
+function showDashboard(username) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('register-screen').style.display = 'none';
+    document.getElementById('dashboard-screen').style.display = 'block';
+    loadDashboard(username);
+}
+
+// ===========================
+// AUTH
+// ===========================
+
+// Hash SHA-256 usando Web Crypto API (nunca texto plano ni base64)
+async function hashPassword(pass) {
+    const enc = new TextEncoder();
+    const buf = await crypto.subtle.digest('SHA-256', enc.encode(pass));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function doLogin() {
+    const user = document.getElementById('login-user').value.trim();
+    const pass = document.getElementById('login-pass').value;
+    const err = document.getElementById('login-error');
+    const btn = document.querySelector('#login-screen .btn-primary');
+
+    if (!user || !pass) { err.textContent = '◈ Completá todos los campos'; return; }
+
+    btn.disabled = true;
+    btn.textContent = '⏳ VERIFICANDO...';
+
+    const users = getUsers();
+    if (!users[user]) {
+        err.textContent = '◈ Usuario no encontrado';
+        btn.disabled = false; btn.textContent = '▶ INGRESAR'; return;
+    }
+
+    const hashed = await hashPassword(pass);
+
+    // Migración automática: si la contraseña está en btoa legacy, actualizarla
+    if (users[user].password === btoa(pass)) {
+        users[user].password = hashed;
+        saveUsers(users);
+    }
+
+    if (users[user].password !== hashed) {
+        err.textContent = '◈ Contraseña incorrecta';
+        btn.disabled = false; btn.textContent = '▶ INGRESAR'; return;
+    }
+
+    setCurrentUser(user);
+    showDashboard(user);
+    btn.disabled = false; btn.textContent = '▶ INGRESAR';
+}
+
+async function doRegister() {
+    const user = document.getElementById('reg-user').value.trim().toLowerCase();
+    const pass = document.getElementById('reg-pass').value;
+    const err = document.getElementById('reg-error');
+    const btn = document.querySelector('#register-screen .btn-primary');
+
+    if (!user || !pass) { err.textContent = '◈ Completá los campos requeridos'; return; }
+    if (user.length < 3) { err.textContent = '◈ Usuario mínimo 3 caracteres'; return; }
+    if (pass.length < 4) { err.textContent = '◈ Contraseña mínimo 4 caracteres'; return; }
+    if (!/^[a-z0-9_]+$/.test(user)) { err.textContent = '◈ Solo letras, números y _'; return; }
+
+    btn.disabled = true;
+    btn.textContent = '⏳ CREANDO...';
+
+    const users = getUsers();
+    if (users[user]) {
+        err.textContent = '◈ Ese usuario ya existe';
+        btn.disabled = false; btn.textContent = '▶ CREAR CUENTA'; return;
+    }
+
+    const hashed = await hashPassword(pass);
+
+    users[user] = {
+        password: hashed,
+        balance: 0,
+        transactions: [],
+        createdAt: new Date().toISOString()
+    };
+    saveUsers(users);
+    setCurrentUser(user);
+    showDashboard(user);
+    btn.disabled = false; btn.textContent = '▶ CREAR CUENTA';
+}
+
+function doLogout() {
+    clearCurrentUser();
+    selectedAmount = 0;
+    showLogin();
+}
+
+// ===========================
+// DASHBOARD
+// ===========================
+function loadDashboard(username) {
+    const users = getUsers();
+    const user = users[username];
+    if (!user) { doLogout(); return; }
+
+    // Header
+    document.getElementById('user-display').textContent = username.toUpperCase();
+    document.getElementById('user-avatar').textContent = username[0].toUpperCase();
+
+    // Balance
+    const bal = parseFloat(user.balance || 0);
+    document.getElementById('balance-val').textContent = bal.toFixed(2);
+
+    // Progress
+    const pct = Math.min((bal / LIMIT) * 100, 100);
+    const fill = document.getElementById('progress-fill');
+    fill.style.width = pct + '%';
+    document.getElementById('progress-pct').textContent = pct.toFixed(0) + '%';
+
+    // Color del progreso según porcentaje
+    if (pct >= 90) fill.style.background = 'linear-gradient(90deg, #ff3366, #ff0055)';
+    else if (pct >= 60) fill.style.background = 'linear-gradient(90deg, #ffaa00, #ff6600)';
+    else fill.style.background = 'linear-gradient(90deg, #00ffff, #00ff88)';
+
+    // Limit reached
+    if (bal >= LIMIT) {
+        document.getElementById('limit-reached').style.display = 'block';
+        document.getElementById('pay-form').style.opacity = '0.4';
+        document.getElementById('pay-form').style.pointerEvents = 'none';
+        document.getElementById('btn-pay').disabled = true;
+    } else {
+        document.getElementById('limit-reached').style.display = 'none';
+        document.getElementById('pay-form').style.opacity = '1';
+        document.getElementById('pay-form').style.pointerEvents = 'auto';
+    }
+
+    // Transactions
+    renderTransactions(user.transactions || []);
+
+    // Status time
+    updateClock();
+    if (window._clockInterval) clearInterval(window._clockInterval);
+    window._clockInterval = setInterval(updateClock, 1000);
+
+    // Update amount buttons state
+    updateAmountButtons(bal);
+}
+
+function updateClock() {
+    const now = new Date();
+    document.getElementById('status-time').textContent =
+        now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function renderTransactions(txs) {
+    const list = document.getElementById('tx-list');
+    if (!txs.length) {
+        list.innerHTML = '<div class="empty-state">SIN MOVIMIENTOS AÚN</div>';
+        return;
+    }
+    list.innerHTML = [...txs].reverse().map(tx => `
+        <div class="tx-item">
+            <div class="tx-type">
+                <div class="tx-dot" style="background:${tx.type === 'recarga' ? '#00ff88' : '#ff3366'}; box-shadow: 0 0 6px ${tx.type === 'recarga' ? '#00ff88' : '#ff3366'}"></div>
+                <div>
+                    <div>${tx.type.toUpperCase()} · MP</div>
+                    <div class="tx-date">${tx.date}</div>
+                </div>
+            </div>
+            <div class="tx-amount" style="color:${tx.type === 'recarga' ? '#00ff88' : '#ff3366'}">
+                +$${tx.amount.toFixed(2)}
+            </div>
+        </div>
+    `).join('');
+}
+
+// ===========================
+// PAGO
+// ===========================
+let selectedAmount = 0;
+
+function selectAmount(val, event) {
+    const users = getUsers();
+    const username = getCurrentUser();
+    const user = users[username];
+    const bal = parseFloat(user.balance || 0);
+    const remaining = LIMIT - bal;
+
+    selectedAmount = Math.min(val, remaining);
+
+    // Visual
+    document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('selected'));
+    if (val <= remaining && event && event.target) {
+        event.target.classList.add('selected');
+    }
+    document.getElementById('custom-input').value = '';
+
+    updatePayButton(selectedAmount, bal);
+}
+
+function focusCustom() {
+    document.getElementById('custom-input').focus();
+    document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById('custom-btn').classList.add('selected');
+}
+
+function onCustomInput(val) {
+    const users = getUsers();
+    const username = getCurrentUser();
+    const user = users[username];
+    const bal = parseFloat(user.balance || 0);
+    const remaining = LIMIT - bal;
+
+    let num = parseFloat(val) || 0;
+    if (num < 0) num = 0;
+    if (num > remaining) num = remaining;
+
+    selectedAmount = num;
+    document.querySelectorAll('.amount-btn:not(#custom-btn)').forEach(b => b.classList.remove('selected'));
+    updatePayButton(selectedAmount, bal);
+}
+
+function updatePayButton(amount, currentBalance) {
+    const btn = document.getElementById('btn-pay');
+    const warn = document.getElementById('limit-warning');
+    const remaining = LIMIT - currentBalance;
+
+    document.getElementById('pay-amount-label').textContent = amount.toFixed(2);
+
+    if (amount <= 0) {
+        btn.disabled = true;
+        warn.style.display = 'none';
+        return;
+    }
+
+    if (amount + currentBalance >= LIMIT) {
+        warn.style.display = 'block';
+        warn.textContent = `⚠ Con esta recarga alcanzás el límite de $${LIMIT} USD`;
+    } else {
+        warn.style.display = 'none';
+    }
+
+    btn.disabled = false;
+}
+
+function updateAmountButtons(bal) {
+    const remaining = LIMIT - bal;
+    document.querySelectorAll('.amount-btn:not(#custom-btn)').forEach(btn => {
+        const val = parseFloat(btn.textContent.replace('$', ''));
+        if (val > remaining) {
+            btn.style.opacity = '0.3';
+            btn.style.pointerEvents = 'none';
+        }
+    });
+}
+
+function doPay() {
+    if (selectedAmount <= 0) return;
+
+    const username = getCurrentUser();
+    const users = getUsers();
+    const user = users[username];
+    const bal = parseFloat(user.balance || 0);
+    const remaining = LIMIT - bal;
+
+    if (selectedAmount > remaining) {
+        selectedAmount = remaining;
+    }
+
+    // Mostrar modal
+    document.getElementById('modal-amount').textContent = `$${selectedAmount.toFixed(2)} USD`;
+    document.getElementById('modal-success').classList.add('active');
+
+    // Abrir MercadoPago
+    const mpUrl = `${MP_BASE_URL}?amount=${selectedAmount}`;
+    window.open(mpUrl, '_blank');
+
+    // TODO PRODUCCIÓN: reemplazar este timeout con un webhook real de MercadoPago.
+    // El endpoint /webhook debe verificar el external_reference y el status === 'approved'
+    // antes de actualizar el balance. Sin esto, el balance se acredita sin verificar el pago.
+    setTimeout(() => {
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('es-AR') + ' ' + now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+
+        users[username].balance = Math.min(bal + selectedAmount, LIMIT);
+        users[username].transactions = users[username].transactions || [];
+        users[username].transactions.push({
+            type: 'recarga',
+            amount: selectedAmount,
+            date: dateStr,
+            id: Date.now()
+        });
+        saveUsers(users);
+        selectedAmount = 0;
+    }, 1000);
+}
+
+function closeModal() {
+    document.getElementById('modal-success').classList.remove('active');
+    const username = getCurrentUser();
+    if (username) loadDashboard(username);
+}
+
+// ===========================
+// ENTER KEY SUPPORT
+// ===========================
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        if (document.getElementById('login-screen').style.display !== 'none') doLogin();
+        else if (document.getElementById('register-screen').style.display !== 'none') doRegister();
+    }
+});
+
+// ===========================
+// PARTICLES
+// ===========================
+(function() {
+    const container = document.getElementById('particles');
+    for (let i = 0; i < 30; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.left = Math.random() * 100 + 'vw';
+        p.style.animationDuration = (8 + Math.random() * 15) + 's';
+        p.style.animationDelay = (Math.random() * 10) + 's';
+        p.style.width = p.style.height = (1 + Math.random() * 3) + 'px';
+        if (Math.random() > 0.5) p.style.background = '#ff00ff';
+        container.appendChild(p);
+    }
+})();
+
+// ===========================
+// INIT
+// ===========================
+(function() {
+    const user = getCurrentUser();
+    if (user) {
+        const users = getUsers();
+        if (users[user]) { showDashboard(user); return; }
+    }
+    showLogin();
+})();
+</script>
+</body>
+</html>
