@@ -1,659 +1,1111 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CELI · HOLOGRAM | HAND TRACKING · IMAGEN · IA</title>
-    <!-- Three.js para renderizado 3D de alta performance -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- MediaPipe Hands para seguimiento real de manos -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
-    
-    <style>
-        :root {
-            --primary: #00ffff;
-            --secondary: #ff00ff;
-            --bg-dark: rgba(0, 5, 15, 0.85);
-            --glass: rgba(0, 255, 255, 0.1);
-        }
-        body {
-            margin: 0;
-            overflow: hidden;
-            background: #000;
-            color: var(--primary);
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            user-select: none;
-        }
-        #canvas-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-        }
-        #input_video {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            width: 160px;
-            height: 120px;
-            z-index: 5;
-            border: 1px solid var(--primary);
-            border-radius: 4px;
-            opacity: 0.7;
-            display: none;
-            transform: scaleX(-1); /* Efecto espejo */
-        }
-        .ui-panel {
-            position: absolute;
-            z-index: 10;
-            background: var(--bg-dark);
-            border: 1px solid var(--primary);
-            padding: 12px;
-            border-radius: 6px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.15);
-        }
-        .top-left { top: 10px; left: 10px; width: 260px; }
-        .bottom-controls { 
-            bottom: 10px; 
-            left: 50%; 
-            transform: translateX(-50%); 
-            display: flex; 
-            gap: 15px; 
-            align-items: flex-end;
-        }
-        .right-panel {
-            top: 10px;
-            right: 10px;
-            width: 220px;
-            text-align: right;
-        }
-        h1 {
-            margin: 0 0 5px 0;
-            font-size: 18px;
-            letter-spacing: 3px;
-            text-shadow: 0 0 10px var(--primary);
-            border-bottom: 1px solid var(--glass);
-            padding-bottom: 5px;
-        }
-        h2 {
-            margin: 10px 0 5px 0;
-            font-size: 12px;
-            color: var(--secondary);
-            letter-spacing: 1px;
-        }
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            margin: 4px 0;
-            font-size: 12px;
-        }
-        .stat-val { color: #fff; font-weight: bold; }
-        
-        button, .file-label {
-            background: rgba(0, 255, 255, 0.1);
-            border: 1px solid var(--primary);
-            color: #fff;
-            padding: 6px 10px;
-            margin: 3px 0;
-            border-radius: 4px;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: 11px;
-            transition: all 0.2s;
-            text-transform: uppercase;
-            display: inline-block;
-            text-align: center;
-        }
-        button:hover, .file-label:hover {
-            background: var(--primary);
-            color: #000;
-            box-shadow: 0 0 15px var(--primary);
-        }
-        button.active {
-            background: var(--secondary);
-            border-color: var(--secondary);
-            color: #fff;
-            box-shadow: 0 0 15px var(--secondary);
-        }
-        .shape-btn { font-size: 16px; padding: 4px 8px; }
-        
-        .slider-group {
-            margin: 8px 0;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .slider-group label { font-size: 11px; flex: 1; text-align: left; }
-        .slider-group input { flex: 1; margin: 0 8px; accent-color: var(--primary); }
-        .slider-group span { width: 35px; text-align: right; font-size: 11px; color: #fff; }
-        
-        #ai-status {
-            margin-top: 10px;
-            padding: 5px;
-            background: rgba(255, 0, 255, 0.1);
-            border-left: 3px solid var(--secondary);
-            font-size: 11px;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 0.7; }
-            50% { opacity: 1; text-shadow: 0 0 8px var(--secondary); }
-        }
-        input[type="file"] { display: none; }
-        
-        .action-group { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CELI · HOLOGRAM 3D — GESTURE ENGINE</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<style>
+:root {
+  --c: #00ffff;
+  --m: #ff00ff;
+  --g: #00ff88;
+  --y: #ffe044;
+  --bg: rgba(0,4,12,0.88);
+  --glass: rgba(0,255,255,0.07);
+  --border: rgba(0,255,255,0.25);
+}
+* { box-sizing: border-box; margin:0; padding:0; }
+body {
+  overflow: hidden; background: #000;
+  color: var(--c); font-family: 'Courier New', monospace;
+  font-size: 11px; user-select: none;
+}
+#cv { position:absolute; top:0; left:0; width:100%; height:100%; z-index:1; }
+
+/* ── CÁMARA MINI ── */
+#vidcam {
+  position:absolute; bottom:10px; right:10px;
+  width:120px; height:90px; z-index:8;
+  border:1px solid var(--border); border-radius:4px;
+  opacity:0.7; display:none; transform:scaleX(-1);
+}
+
+/* ── HUD IZQUIERDO — compacto ── */
+#hud-left {
+  position:absolute; top:10px; left:10px;
+  z-index:10; display:flex; flex-direction:column; gap:6px;
+  width:190px;
+}
+.card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius:5px;
+  padding: 8px 10px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 0 18px rgba(0,255,255,0.07);
+}
+.brand { font-size:14px; letter-spacing:4px; text-shadow:0 0 10px var(--c); font-weight:bold; }
+.sub   { font-size:9px; color:var(--m); letter-spacing:2px; margin-top:2px; }
+
+.stats-row { display:flex; justify-content:space-between; align-items:center; line-height:1.9; }
+.stats-row .lbl { font-size:9px; color:#888; }
+.stats-row .val { font-size:11px; color:#fff; font-weight:bold; }
+
+/* gesto activo */
+#g-badge {
+  display:flex; align-items:center; gap:6px;
+  padding:5px 8px;
+  border:1px solid var(--m);
+  border-radius:4px;
+  background:rgba(255,0,255,0.07);
+}
+#g-icon  { font-size:20px; line-height:1; }
+#g-name  { font-size:10px; color:var(--m); letter-spacing:1px; }
+#g-desc  { font-size:9px; color:#aaa; margin-top:1px; }
+
+/* botón cam */
+#btncam {
+  width:100%; padding:5px 8px;
+  background:rgba(0,255,255,0.06);
+  border:1px solid var(--c); color:#fff;
+  border-radius:4px; cursor:pointer;
+  font-family:inherit; font-size:10px;
+  text-transform:uppercase; letter-spacing:1px;
+  transition:all .15s;
+}
+#btncam:hover { background:var(--c); color:#000; box-shadow:0 0 12px var(--c); }
+#btncam.on    { background:var(--g); border-color:var(--g); color:#000; box-shadow:0 0 12px var(--g); }
+
+/* status */
+#status {
+  font-size:9px; padding:4px 6px;
+  background:rgba(255,0,255,0.06);
+  border-left:2px solid var(--m);
+  animation: pulse 2s infinite;
+  white-space: nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+@keyframes pulse{ 0%,100%{opacity:.7} 50%{opacity:1; text-shadow:0 0 6px var(--m);} }
+
+/* ── HUD DERECHO — parámetros + shapes ── */
+#hud-right {
+  position:absolute; top:10px; right:10px;
+  z-index:10; width:160px;
+  display:flex; flex-direction:column; gap:6px;
+}
+.sg { display:flex; align-items:center; gap:4px; margin:2px 0; }
+.sg label { font-size:9px; color:#888; width:56px; flex-shrink:0; }
+.sg input  { flex:1; accent-color:var(--c); }
+.sg span   { width:28px; text-align:right; font-size:9px; color:#fff; }
+
+.sec-title { font-size:9px; color:var(--m); letter-spacing:2px; margin-bottom:4px; }
+
+.shape-grid { display:flex; flex-wrap:wrap; gap:3px; }
+.sbtn {
+  background:rgba(0,255,255,0.06);
+  border:1px solid var(--border); color:#fff;
+  padding:3px 6px; border-radius:3px;
+  cursor:pointer; font-size:13px;
+  transition:all .12s;
+}
+.sbtn:hover { background:var(--c); color:#000; box-shadow:0 0 8px var(--c); }
+
+/* upload */
+.flabel {
+  display:block; width:100%; padding:4px 0; text-align:center;
+  background:rgba(0,255,255,0.06);
+  border:1px solid var(--border); border-radius:4px;
+  cursor:pointer; font-size:9px; color:#fff;
+  text-transform:uppercase; letter-spacing:1px;
+  transition:all .12s;
+}
+.flabel:hover { background:var(--c); color:#000; }
+input[type=file]{ display:none; }
+#progwrap { display:none; height:3px; background:rgba(0,255,255,0.1); border-radius:1px; margin-top:4px; overflow:hidden; }
+#progbar  { height:100%; width:0%; background:var(--c); transition:width .1s; }
+
+/* ── BARRA INFERIOR — acciones ── */
+#hud-bot {
+  position:absolute; bottom:10px; left:50%; transform:translateX(-50%);
+  z-index:10;
+  display:flex; gap:4px; align-items:center;
+}
+.abtn {
+  background:rgba(0,255,255,0.06);
+  border:1px solid var(--border); color:#fff;
+  padding:4px 8px; border-radius:4px;
+  cursor:pointer; font-family:inherit; font-size:9px;
+  text-transform:uppercase; letter-spacing:1px;
+  transition:all .12s; white-space:nowrap;
+}
+.abtn:hover { background:var(--c); color:#000; box-shadow:0 0 10px var(--c); }
+.abtn.on    { background:var(--m); border-color:var(--m); box-shadow:0 0 10px var(--m); }
+.abtn.gon   { background:var(--g); border-color:var(--g); color:#000; }
+
+/* ── GESTO FLASH CENTRAL ── */
+#gind {
+  position:absolute; top:48%; left:50%;
+  transform:translate(-50%,-50%);
+  font-size:52px; opacity:0;
+  pointer-events:none; z-index:20;
+  transition: opacity .3s;
+  text-shadow: 0 0 30px var(--m);
+  filter: drop-shadow(0 0 16px var(--m));
+}
+
+/* ── CURSOR DE MANO EN CANVAS ── */
+#hand-cursor {
+  position:absolute; pointer-events:none; z-index:15;
+  width:28px; height:28px; margin-left:-14px; margin-top:-14px;
+  border-radius:50%;
+  border: 2px solid var(--c);
+  box-shadow: 0 0 14px var(--c), inset 0 0 6px rgba(0,255,255,0.3);
+  transition: border-color .15s, box-shadow .15s;
+  display:none;
+}
+#hand-cursor.pinch  { border-color:var(--m); box-shadow:0 0 14px var(--m), inset 0 0 6px rgba(255,0,255,0.3); transform:scale(0.55) translate(-50%,-50%); }
+#hand-cursor.fist   { border-color:#ff4444; box-shadow:0 0 14px #ff4444; transform:scale(1.2) translate(-12px,-12px); }
+#hand-cursor.palm   { border-color:var(--g); box-shadow:0 0 18px var(--g); transform:scale(1.4) translate(-10px,-10px); }
+#hand-cursor.throw  { border-color:var(--y); box-shadow:0 0 22px var(--y); }
+#hand-cursor.mag    { border-color:#ff88ff; box-shadow:0 0 22px #ff88ff; transform:scale(1.3) translate(-11px,-11px); }
+
+/* velocímetro compacto */
+#velbar-wrap {
+  position:absolute; top:50%; left:10px;
+  transform:translateY(-50%);
+  z-index:10; width:6px; height:120px;
+  background:rgba(0,255,255,0.07);
+  border:1px solid var(--border);
+  border-radius:3px; overflow:hidden;
+  display:none;
+}
+#velbar { width:100%; height:0%; background:var(--y); transition:height .1s; border-radius:3px; position:absolute; bottom:0; }
+</style>
 </head>
 <body>
 
-    <video id="input_video" playsinline></video>
-    <div id="canvas-container"></div>
+<video id="vidcam" playsinline></video>
+<div id="cv"></div>
+<div id="gind">✋</div>
+<div id="hand-cursor"></div>
+<div id="velbar-wrap"><div id="velbar"></div></div>
 
-    <!-- Panel Superior Izquierdo: Info y Stats -->
-    <div class="ui-panel top-left">
-        <h1>CELI · HOLOGRAM</h1>
-        <div style="font-size: 11px; margin-bottom: 10px; color: var(--secondary);">▼✋ HAND TRACKING · IMAGEN · IA</div>
-        
-        <div class="stat-row"><span>FPS</span><span class="stat-val" id="fps">0</span></div>
-        <div class="stat-row"><span>PTS</span><span class="stat-val" id="pts">8000</span></div>
-        <div class="stat-row"><span>T</span><span class="stat-val" id="time">0s</span></div>
-        
-        <div style="margin-top: 15px; border-top: 1px solid var(--glass); padding-top: 10px;">
-            <label class="file-label" for="img-upload">🖼 CARGAR IMAGEN 3D</label>
-            <input type="file" id="img-upload" accept="image/*">
-            <button id="btn-cam" style="width: 100%; margin-top: 5px;">📷 ACTIVAR HAND TRACKING</button>
-        </div>
-        
-        <div id="ai-status">INICIANDO... ——</div>
+<!-- HUD IZQUIERDO -->
+<div id="hud-left">
+  <div class="card">
+    <div class="brand">CELI · HOLOGRAM</div>
+    <div class="sub">GESTURE PHYSICS ENGINE</div>
+  </div>
+
+  <div class="card">
+    <div class="stats-row"><span class="lbl">FPS</span><span class="val" id="fps">0</span></div>
+    <div class="stats-row"><span class="lbl">PARTÍCULAS</span><span class="val" id="pts">0</span></div>
+    <div class="stats-row"><span class="lbl">VELOCIDAD</span><span class="val" id="vel-display">0</span></div>
+  </div>
+
+  <!-- Gesto activo badge -->
+  <div id="g-badge">
+    <div id="g-icon">—</div>
+    <div>
+      <div id="g-name">SIN MANO</div>
+      <div id="g-desc">Activa el tracking</div>
     </div>
+  </div>
 
-    <!-- Panel Derecho: Parámetros -->
-    <div class="ui-panel right-panel">
-        <h2>◈ PARÁMETROS</h2>
-        <div class="slider-group">
-            <label>ROTACIÓN</label>
-            <input type="range" id="rot" min="0" max="2" step="0.1" value="0.6">
-            <span id="rot-val">.6</span>
-        </div>
-        <div class="slider-group">
-            <label>DENSIDAD</label>
-            <input type="range" id="dens" min="1000" max="10000" step="1000" value="8000">
-            <span id="dens-val">8K</span>
-        </div>
-        <div class="slider-group">
-            <label>FUERZA</label>
-            <input type="range" id="fuerza" min="0.5" max="5" step="0.5" value="2">
-            <span id="fuerza-val">2</span>
-        </div>
+  <div class="card">
+    <button id="btncam">📷 HAND TRACKING</button>
+    <label class="flabel" for="imgup" style="margin-top:5px;">🖼 CARGAR IMAGEN 3D</label>
+    <input type="file" id="imgup" accept="image/*">
+    <div id="progwrap"><div id="progbar"></div></div>
+  </div>
+
+  <div id="status">MOTOR LISTO — 200K PARTÍCULAS</div>
+
+  <div class="card" id="vini-card">
+    <div class="sec-title">◈ VINI</div>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <span id="vini-dot" style="width:8px;height:8px;border-radius:50%;background:var(--c);box-shadow:0 0 6px var(--c);flex-shrink:0;"></span>
+      <span id="vini-text" style="font-size:9px;color:#fff;">INICIANDO...</span>
     </div>
+  </div>
+</div>
 
-    <!-- Controles Inferiores: Acciones y Formas -->
-    <div class="ui-panel bottom-controls">
-        <div style="text-align: center;">
-            <h2>◈ ACCIONES</h2>
-            <div class="action-group">
-                <button id="act-armar" class="active">▶ ARMAR</button>
-                <button id="act-atraer">🌀 ATRAER</button>
-                <button id="act-repeler">💥 REPELER</button>
-                <button id="act-giro">🌪 GIRO</button>
-                <button id="act-moldear">🖐 MOLDEAR</button>
-            </div>
-        </div>
-        
-        <div style="width: 1px; background: var(--glass); margin: 0 10px;"></div>
-        
-        <div style="text-align: center;">
-            <h2>◈ FIGURAS BASE</h2>
-            <div class="action-group">
-                <button class="shape-btn" onclick="setShape('sphere')" title="Esfera">◉</button>
-                <button class="shape-btn" onclick="setShape('torus')" title="Toroide">◎</button>
-                <button class="shape-btn" onclick="setShape('cube')" title="Cubo">◻</button>
-                <button class="shape-btn" onclick="setShape('dna')" title="ADN">🧬</button>
-                <button class="shape-btn" onclick="setShape('galaxy')" title="Galaxia">🌀</button>
-            </div>
-        </div>
+<!-- HUD DERECHO -->
+<div id="hud-right">
+  <div class="card">
+    <div class="sec-title">◈ PARTÍCULAS</div>
+    <div class="sg">
+      <label>COUNT</label>
+      <input type="range" id="sldens" min="10000" max="200000" step="10000" value="80000">
+      <span id="vdens">80K</span>
     </div>
+    <div class="sg">
+      <label>ROTACIÓN</label>
+      <input type="range" id="slrot" min="0" max="3" step="0.1" value="0.5">
+      <span id="vrot">0.5</span>
+    </div>
+    <div class="sg">
+      <label>SPRING</label>
+      <input type="range" id="slspring" min="0.01" max="0.12" step="0.01" value="0.05">
+      <span id="vspring">.05</span>
+    </div>
+    <div class="sg">
+      <label>TAM PTO</label>
+      <input type="range" id="slsize" min="0.02" max="0.15" step="0.01" value="0.05">
+      <span id="vsize">.05</span>
+    </div>
+  </div>
 
-    <script>
-        // --- VARIABLES GLOBALES ---
-        let scene, camera, renderer, particles;
-        let particleCount = 8000;
-        let posArray, tgtArray, colArray, velArray, geom;
-        
-        let currentMode = 'ARMAR';
-        let rotSpeed = 0.6;
-        let fuerza = 2.0;
-        
-        let handX = 0, handY = 0, handZ = 0;
-        let handActive = false;
-        let isHandDetected = false;
-        
-        let frames = 0, lastTime = Date.now(), startTime = Date.now();
+  <div class="card">
+    <div class="sec-title">◈ FIGURAS</div>
+    <div class="shape-grid">
+      <button class="sbtn" onclick="setShape('sphere')" title="Esfera">◉</button>
+      <button class="sbtn" onclick="setShape('torus')"  title="Toro">◎</button>
+      <button class="sbtn" onclick="setShape('cube')"   title="Cubo">◻</button>
+      <button class="sbtn" onclick="setShape('dna')"    title="ADN">🧬</button>
+      <button class="sbtn" onclick="setShape('galaxy')" title="Galaxia">🌀</button>
+      <button class="sbtn" onclick="setShape('heart')"  title="Corazón">♡</button>
+      <button class="sbtn" onclick="setShape('star')"   title="Estrella">★</button>
+      <button class="sbtn" onclick="setShape('wave')"   title="Onda">〜</button>
+    </div>
+  </div>
+</div>
 
-        // --- INICIALIZACIÓN THREE.JS ---
-        function init() {
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
-            camera.position.z = 8;
+<!-- BARRA INFERIOR — acciones manuales -->
+<div id="hud-bot">
+  <button class="abtn on" id="a-armar"   onclick="setMode('ARMAR','a-armar')">▶ ARMAR</button>
+  <button class="abtn"    id="a-atraer"  onclick="setMode('ATRAER','a-atraer')">🌀 ATRAER</button>
+  <button class="abtn"    id="a-repeler" onclick="setMode('REPELER','a-repeler')">💥 REPELER</button>
+  <button class="abtn"    id="a-giro"    onclick="setMode('GIRO','a-giro')">🌪 GIRO</button>
+  <button class="abtn"    id="a-moldear" onclick="setMode('MOLDEAR','a-moldear')">🖐 MOLDEAR</button>
+  <button class="abtn"    id="a-explotar" onclick="triggerExplode()">💣 EXPLOTAR</button>
+</div>
 
-            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            document.getElementById('canvas-container').appendChild(renderer.domElement);
+<script>
+// ═══════════════════════════════════════════════════
+//  CELI HOLOGRAM 3D — GESTURE PHYSICS ENGINE v3
+//  Sistema físico continuo: postura + movimiento → física
+//  8 gestos: atraer · pinch · arrastrar · girar muñeca ·
+//            escalar · comprimir · lanzar · magnético
+// ═══════════════════════════════════════════════════
 
-            rebuildGeometry(particleCount);
-            setShape('sphere');
-            animate();
+const MAX_PARTICLES = 200000;
+let particleCount = 80000;
+
+let scene, camera, renderer, pointsMesh, geom, mat;
+let pos, vel, tgt, col, alive;
+
+// ── ESTADO MODO MANUAL ──
+let manualMode = 'ARMAR';
+
+// ── ESTADO CONTINUO DE MANO ──
+let hx = 0, hy = 0, hz = 0;
+let handOn = false;
+let handVelX = 0, handVelY = 0, handVelZ = 0;
+let prevHx = 0, prevHy = 0;
+let handSpeed = 0;
+
+// ── GESTO ACTUAL ──
+let gesture = { g: 'NONE', icon: '—', desc: '', physics: 'NONE' };
+let gestureLabel = '—';
+
+// ── HOLOGRAM TRANSFORM (drag / rotate / scale) ──
+let holoOffsetX = 0, holoOffsetY = 0, holoOffsetZ = 0;   // offset de arrastre
+let holoScale   = 1.0;                                      // escala pinch
+let holoRotY    = 0;                                        // rotación muñeca
+
+// Pinch state
+let pinchActive = false;
+let pinchStartDist = 0;
+let pinchStartScale = 1;
+
+// Drag state
+let dragActive = false;
+let dragStartHx = 0, dragStartHy = 0;
+let dragStartOx = 0, dragStartOy = 0;
+
+// Wrist rotation state
+let wristPrev = null;
+
+// Magnetic sweep state
+let magneticMode = false;
+let magneticTimer = 0;
+
+// Stats
+let frames = 0, lastStatTime = Date.now();
+let exploding = false;
+
+// ── GESTO → FÍSICA CONTINUA ──
+const GESTURE_DB = {
+  PALM:    { icon:'🖐', g:'PALMA ABIERTA',  desc:'Atrayendo partículas',    physics:'ATTRACT'   },
+  PINCH:   { icon:'🤏', g:'PINCH',          desc:'Agarrando holograma',     physics:'GRAB'      },
+  DRAG:    { icon:'🤚', g:'ARRASTRE',        desc:'Moviendo holograma',      physics:'DRAG'      },
+  WRIST:   { icon:'🤌', g:'GIRO MUÑECA',    desc:'Rotando holograma',       physics:'WRIST_ROT' },
+  SCALE:   { icon:'🤟', g:'ESCALAR',         desc:'Escalando partículas',    physics:'SCALE'     },
+  FIST:    { icon:'✊', g:'PUÑO',            desc:'Comprimiendo',            physics:'COMPRESS'  },
+  THROW:   { icon:'💨', g:'LANZAR',          desc:'¡Proyectando!',           physics:'THROW'     },
+  SWEEP:   { icon:'👋', g:'BARRIDO MAGNÉT.', desc:'Reconstrucción magnética',physics:'MAGNETIC'  },
+  INDEX:   { icon:'☝', g:'ÍNDICE',           desc:'Moldeando forma',         physics:'MOLD'      },
+  TWO:     { icon:'✌', g:'DOS DEDOS',        desc:'Girando holograma',       physics:'SPIN'      },
+};
+
+// ── INIT ──────────────────────────────────────────
+function init() {
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 200);
+  camera.position.z = 10;
+
+  renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+  document.getElementById('cv').appendChild(renderer.domElement);
+
+  allocBuffers(MAX_PARTICLES);
+  rebuildGeometry(particleCount);
+  setShape('sphere');
+  animate();
+}
+
+function allocBuffers(n) {
+  pos   = new Float32Array(n * 3);
+  vel   = new Float32Array(n * 3);
+  tgt   = new Float32Array(n * 3);
+  col   = new Float32Array(n * 3);
+  alive = new Uint8Array(n);
+  for (let i = 0; i < n; i++) {
+    const i3 = i * 3;
+    pos[i3]   = (Math.random() - 0.5) * 30;
+    pos[i3+1] = (Math.random() - 0.5) * 30;
+    pos[i3+2] = (Math.random() - 0.5) * 30;
+    col[i3]   = 0; col[i3+1] = 0.8; col[i3+2] = 1;
+    alive[i]  = 1;
+  }
+}
+
+function rebuildGeometry(count) {
+  particleCount = count;
+  if (pointsMesh) scene.remove(pointsMesh);
+  if (geom) geom.dispose();
+
+  geom = new THREE.BufferGeometry();
+  const posView = pos.subarray(0, count * 3);
+  const colView = col.subarray(0, count * 3);
+  geom.setAttribute('position', new THREE.BufferAttribute(posView, 3));
+  geom.setAttribute('color',    new THREE.BufferAttribute(colView, 3));
+
+  const ptSize = parseFloat(document.getElementById('slsize').value);
+  mat = new THREE.PointsMaterial({
+    size: ptSize, vertexColors: true,
+    transparent: true, opacity: 0.92,
+    blending: THREE.AdditiveBlending,
+    sizeAttenuation: true, depthWrite: false
+  });
+  pointsMesh = new THREE.Points(geom, mat);
+  scene.add(pointsMesh);
+  document.getElementById('pts').innerText =
+    count >= 1000 ? (count / 1000).toFixed(0) + 'K' : count;
+}
+
+// ── SHAPES ────────────────────────────────────────
+function setShape(shape) {
+  setStatus('GENERANDO: ' + shape.toUpperCase());
+  const n = particleCount;
+  for (let i = 0; i < n; i++) {
+    const i3 = i * 3;
+    const t = i / n;
+    let x = 0, y = 0, z = 0, r = 0, g2 = 1, b = 1;
+    switch(shape) {
+      case 'sphere': {
+        const phi = Math.acos(1 - 2 * t); const th = t * 6.2832 * 1.618; const rad = 3.2;
+        x = rad*Math.sin(phi)*Math.cos(th); y = rad*Math.sin(phi)*Math.sin(th); z = rad*Math.cos(phi);
+        r=0; g2=0.8+0.2*Math.sin(phi*3); b=1; break;
+      }
+      case 'torus': {
+        const u = t*6.2832; const v = (i%200)/200*6.2832;
+        x=(3.2+1.1*Math.cos(v))*Math.cos(u); y=(3.2+1.1*Math.cos(v))*Math.sin(u); z=1.1*Math.sin(v);
+        r=1; g2=0.4; b=0; break;
+      }
+      case 'cube': {
+        const face=i%6; const u2=(Math.random()-0.5)*6; const v2=(Math.random()-0.5)*6;
+        if(face===0){x=3;y=u2;z=v2;} else if(face===1){x=-3;y=u2;z=v2;}
+        else if(face===2){y=3;x=u2;z=v2;} else if(face===3){y=-3;x=u2;z=v2;}
+        else if(face===4){z=3;x=u2;y=v2;} else{z=-3;x=u2;y=v2;}
+        r=0.8; g2=0.1; b=1; break;
+      }
+      case 'dna': {
+        const ang=t*Math.PI*16; const h=(t-0.5)*12; const strand=i%2===0?1:-1;
+        x=strand*2*Math.cos(ang); y=h; z=strand*2*Math.sin(ang); r=0; g2=1; b=0.5;
+        if(i%7===0){x*=0.2;z*=0.2;r=1;g2=1;b=0;} break;
+      }
+      case 'galaxy': {
+        const arm=i%3; const radius=0.5+t*5; const ang2=t*14+arm*2.094;
+        x=radius*Math.cos(ang2); y=(Math.random()-0.5)*0.5*(1-t); z=radius*Math.sin(ang2);
+        r=0.5+t*0.5; g2=0; b=1-t*0.5; break;
+      }
+      case 'heart': {
+        const a=t*6.2832;
+        const hx2=16*Math.pow(Math.sin(a),3);
+        const hy2=13*Math.cos(a)-5*Math.cos(2*a)-2*Math.cos(3*a)-Math.cos(4*a);
+        x=hx2*0.22; y=hy2*0.22; z=(Math.random()-0.5)*2; r=1; g2=0.15; b=0.4; break;
+      }
+      case 'star': {
+        const arms=5; const outer=3.5; const inner=1.5; const starAng=t*Math.PI*2;
+        const armIdx=Math.floor(t*arms*2); const rad2=armIdx%2===0?outer:inner;
+        x=rad2*Math.cos(starAng); y=rad2*Math.sin(starAng); z=(Math.random()-0.5)*2.5;
+        r=1; g2=0.9; b=0; break;
+      }
+      case 'wave': {
+        x=(t-0.5)*12; y=2*Math.sin(x*1.2)*Math.cos(t*6.2832*2); z=2*Math.cos(x*0.9);
+        r=0; g2=1; b=0.8; break;
+      }
+    }
+    tgt[i3]=x; tgt[i3+1]=y; tgt[i3+2]=z;
+    col[i3]=r; col[i3+1]=g2; col[i3+2]=b;
+    alive[i]=1;
+  }
+  geom.attributes.color.needsUpdate = true;
+  manualMode = 'ARMAR'; updateBtn('a-armar');
+  setStatus('FORMA LISTA: ' + shape.toUpperCase());
+}
+
+// ── PHYSICS LOOP ──────────────────────────────────
+const CHUNK = 25000;
+let physChunk = 0;
+
+function physicsTick() {
+  const n = particleCount;
+  const sp = parseFloat(document.getElementById('slspring').value);
+  const currentGesture = gesture.physics;
+
+  const isArmar = (currentGesture === 'NONE' && manualMode === 'ARMAR') || currentGesture === 'NONE';
+  const springVal = isArmar ? sp : sp * 0.4;
+
+  const start = physChunk * CHUNK;
+  const end   = Math.min(start + CHUNK, n);
+
+  // Magnético: aumenta timer
+  if (magneticMode) {
+    magneticTimer++;
+    if (magneticTimer > 120) { magneticMode = false; magneticTimer = 0; }
+  }
+
+  for (let i = start; i < end; i++) {
+    if (!alive[i]) continue;
+    const i3 = i * 3;
+    let fx = 0, fy = 0, fz = 0;
+
+    if (handOn) {
+      // Posición relativa al holograma (considerando offset de arrastre y escala)
+      const px = pos[i3], py = pos[i3+1], pz = pos[i3+2];
+      const dx = hx - px;
+      const dy = hy - py;
+      const dz = hz - pz;
+      const dist2 = dx*dx + dy*dy + dz*dz + 0.05;
+      const dist  = Math.sqrt(dist2);
+
+      switch(currentGesture) {
+
+        case 'ATTRACT': // 🖐 palma: atracción gravitacional suave
+          { const inv = 0.035 / dist2; fx += dx*inv; fy += dy*inv; fz += dz*inv; }
+          break;
+
+        case 'GRAB': // 🤏 pinch: bloquea partículas cercanas al palm
+          if (dist < 2.0) {
+            fx += dx * 0.18; fy += dy * 0.18; fz += dz * 0.18;
+          }
+          break;
+
+        case 'DRAG': // 🤚 arrastrar: desplaza todo el holograma
+          // el offset se aplica en animate(), aquí amortiguamos
+          fx += (tgt[i3]   + holoOffsetX - px) * sp * 0.6;
+          fy += (tgt[i3+1] + holoOffsetY - py) * sp * 0.6;
+          fz += (tgt[i3+2] + holoOffsetZ - pz) * sp * 0.6;
+          break;
+
+        case 'COMPRESS': // ✊ puño: compresión hacia el centro
+          { const inv = 0.22 / (dist2 + 0.1);
+            fx -= px * inv; fy -= py * inv; fz -= pz * inv; }
+          break;
+
+        case 'THROW': // 💨 velocidad rápida: lanzamiento direccional
+          { const throwF = Math.min(handSpeed * 0.6, 2.5);
+            if (dist < 5.0) {
+              fx += handVelX * throwF;
+              fy += handVelY * throwF;
+              fz += handVelZ * throwF;
+            }
+          }
+          break;
+
+        case 'MAGNETIC': // 👋 barrido: reconstrucción magnética
+          { const pullF = magneticMode ? 0.08 : 0.03;
+            fx += (tgt[i3]   - px) * pullF;
+            fy += (tgt[i3+1] - py) * pullF;
+            fz += (tgt[i3+2] - pz) * pullF;
+            // extra atracción si partícula dispersa
+            const dtgt2 = (tgt[i3]-px)*(tgt[i3]-px) + (tgt[i3+1]-py)*(tgt[i3+1]-py);
+            if (dtgt2 > 4) { fx += (tgt[i3]-px)*0.04; fy += (tgt[i3+1]-py)*0.04; }
+          }
+          break;
+
+        case 'MOLD': // ☝ índice: deforma localmente
+          if (dist2 < 9) {
+            const inv = 0.06 / (dist2 + 0.1);
+            fx -= dx * inv; fy -= dy * inv;
+          }
+          break;
+
+        case 'SPIN': // ✌ dos dedos: giro orbital
+          fx += -dy * 0.04; fy += dx * 0.04; fz += dz * 0.01;
+          break;
+
+        case 'SCALE': // 🤟 pulgar+índice separados: escala target
+          { const scaledX = tgt[i3]   * holoScale;
+            const scaledY = tgt[i3+1] * holoScale;
+            const scaledZ = tgt[i3+2] * holoScale;
+            fx += (scaledX - px) * sp * 0.5;
+            fy += (scaledY - py) * sp * 0.5;
+            fz += (scaledZ - pz) * sp * 0.5;
+          }
+          break;
+
+        case 'WRIST_ROT': { // 🤌 rotación de muñeca
+          const cosR = Math.cos(holoRotY);
+          const sinR = Math.sin(holoRotY);
+          const rotX = tgt[i3]*cosR - tgt[i3+2]*sinR;
+          const rotZ = tgt[i3]*sinR + tgt[i3+2]*cosR;
+          fx += (rotX - px) * sp * 0.5;
+          fy += (tgt[i3+1] - py) * sp * 0.5;
+          fz += (rotZ - pz) * sp * 0.5;
+          break;
         }
 
-        // --- MOTOR DE GEOMETRÍA Y PARTÍCULAS ---
-        function rebuildGeometry(count) {
-            particleCount = count;
-            if (particles) scene.remove(particles);
-            
-            geom = new THREE.BufferGeometry();
-            posArray = new Float32Array(count * 3);
-            tgtArray = new Float32Array(count * 3);
-            colArray = new Float32Array(count * 3);
-            velArray = new Float32Array(count * 3);
-            
-            for (let i = 0; i < count; i++) {
-                const i3 = i * 3;
-                posArray[i3] = (Math.random() - 0.5) * 20;
-                posArray[i3+1] = (Math.random() - 0.5) * 20;
-                posArray[i3+2] = (Math.random() - 0.5) * 20;
-                
-                tgtArray[i3] = posArray[i3];
-                tgtArray[i3+1] = posArray[i3+1];
-                tgtArray[i3+2] = posArray[i3+2];
-                
-                colArray[i3] = 0; colArray[i3+1] = 1; colArray[i3+2] = 1; // Cyan por defecto
-                velArray[i3] = 0; velArray[i3+1] = 0; velArray[i3+2] = 0;
-            }
-            
-            geom.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-            geom.setAttribute('color', new THREE.BufferAttribute(colArray, 3));
-            
-            const material = new THREE.PointsMaterial({
-                size: 0.06,
-                vertexColors: true,
-                transparent: true,
-                opacity: 0.9,
-                blending: THREE.AdditiveBlending,
-                sizeAttenuation: true
-            });
-            
-            particles = new THREE.Points(geom, material);
-            scene.add(particles);
-            
-            document.getElementById('pts').innerText = (count >= 1000 ? (count/1000) + 'K' : count);
+        case 'NONE':
+        default:
+          // Usar modo manual heredado
+          applyManualPhysics(i3, dx, dy, dz, dist2, fx, fy, fz);
+          // nota: se reasigna abajo
+          { const r = applyManualPhysicsFull(px, py, pz, dx, dy, dz, dist2);
+            fx = r[0]; fy = r[1]; fz = r[2]; }
+          break;
+      }
+    }
+
+    // Explotar
+    if (exploding) {
+      const ex=pos[i3]; const ey=pos[i3+1]; const ez=pos[i3+2];
+      const ed=Math.sqrt(ex*ex+ey*ey+ez*ez)+0.1;
+      fx += (ex/ed)*0.9; fy += (ey/ed)*0.9; fz += (ez/ed)*0.9;
+    }
+
+    // Spring hacia target (solo cuando no hay override de gesto)
+    // FIX: antes este spring ignoraba holoScale/holoOffset, así que al soltar
+    // el gesto de arrastre o escala el holograma volvía de golpe al centro en
+    // tamaño original. Ahora el reposo respeta el último escalado/offset
+    // aplicado, sea por gesto de mano o por un comando de voz de Vini.
+    if (currentGesture !== 'DRAG' && currentGesture !== 'SCALE' && currentGesture !== 'WRIST_ROT' && currentGesture !== 'MAGNETIC') {
+      fx += (tgt[i3]   * holoScale + holoOffsetX - pos[i3])   * springVal;
+      fy += (tgt[i3+1] * holoScale + holoOffsetY - pos[i3+1]) * springVal;
+      fz += (tgt[i3+2] * holoScale + holoOffsetZ - pos[i3+2]) * springVal;
+    }
+
+    vel[i3]   = (vel[i3]   + fx) * 0.87;
+    vel[i3+1] = (vel[i3+1] + fy) * 0.87;
+    vel[i3+2] = (vel[i3+2] + fz) * 0.87;
+
+    pos[i3]   += vel[i3];
+    pos[i3+1] += vel[i3+1];
+    pos[i3+2] += vel[i3+2];
+  }
+
+  physChunk = (physChunk + 1) % Math.ceil(n / CHUNK);
+}
+
+function applyManualPhysicsFull(px, py, pz, dx, dy, dz, dist2) {
+  let fx=0, fy=0, fz=0;
+  const f = parseFloat(document.getElementById('slfuerza') ? document.getElementById('slfuerza').value : 3) || 3;
+  if (manualMode === 'ATRAER') {
+    const inv = f*0.012/dist2; fx += dx*inv; fy += dy*inv; fz += dz*inv;
+  } else if (manualMode === 'REPELER') {
+    if (dist2 < 16){ const inv=f*0.12/dist2; fx -= dx*inv; fy -= dy*inv; fz -= dz*inv; }
+  } else if (manualMode === 'GIRO') {
+    fx += -dy*f*0.04; fy += dx*f*0.04; fz += dz*0.01;
+  } else if (manualMode === 'MOLDEAR') {
+    if (dist2 < 9){ const inv=f*0.06/(dist2+0.1); fx -= dx*inv; fy -= dy*inv; }
+  }
+  return [fx, fy, fz];
+}
+function applyManualPhysics() {} // placeholder
+
+// ── ANIMATE ───────────────────────────────────────
+let rotSpeedAuto = 0.5;
+
+function animate() {
+  requestAnimationFrame(animate);
+  physicsTick();
+  geom.attributes.position.needsUpdate = true;
+
+  // Rotación auto + rotación de muñeca
+  if (rotSpeedAuto > 0) pointsMesh.rotation.y += rotSpeedAuto * 0.005;
+
+  renderer.render(scene, camera);
+
+  // Velocidad de mano
+  handSpeed = Math.sqrt(handVelX*handVelX + handVelY*handVelY) * 60;
+  document.getElementById('vel-display').innerText = handSpeed.toFixed(1);
+  // Velocímetro visual
+  if (handOn) {
+    document.getElementById('velbar-wrap').style.display = 'block';
+    const pct = Math.min(handSpeed * 6, 100);
+    document.getElementById('velbar').style.height = pct + '%';
+    document.getElementById('velbar').style.background = pct > 60 ? '#ffe044' : '#00ffff';
+  } else {
+    document.getElementById('velbar-wrap').style.display = 'none';
+  }
+
+  frames++;
+  const now = Date.now();
+  if (now - lastStatTime >= 700) {
+    const fps = Math.round(frames / ((now - lastStatTime) / 1000));
+    document.getElementById('fps').innerText = fps;
+    frames = 0; lastStatTime = now;
+  }
+}
+
+// ── MEDIAPIPE HAND TRACKING ───────────────────────
+const vid = document.getElementById('vidcam');
+let mpHands, camUtil;
+
+function detectGesture(lms) {
+  const tips  = [4,8,12,16,20];
+  const pips  = [3,6,10,14,18];
+  const extended = tips.map((t,i) => lms[t].y < lms[pips[i]].y);
+  const extCount = extended.filter(Boolean).length;
+
+  // Pinch thumb-index
+  const tdx = lms[4].x - lms[8].x;
+  const tdy = lms[4].y - lms[8].y;
+  const pinchDist = Math.sqrt(tdx*tdx + tdy*tdy);
+
+  // Thumb-index spread (para escalar)
+  const thumbSpread = Math.abs(lms[4].x - lms[8].x) + Math.abs(lms[4].y - lms[8].y);
+
+  // Wrist angle (dedo medio vs muñeca → rotación)
+  const wristAngle = Math.atan2(lms[12].y - lms[0].y, lms[12].x - lms[0].x);
+
+  // Speed check para THROW
+  if (handSpeed > 8.0) {
+    return GESTURE_DB.THROW;
+  }
+
+  // Puño (0 dedos)
+  if (extCount === 0) return GESTURE_DB.FIST;
+
+  // Pinch cerrado
+  if (pinchDist < 0.055) return GESTURE_DB.PINCH;
+
+  // Índice solo
+  if (extCount === 1 && extended[1]) return GESTURE_DB.INDEX;
+
+  // Dos dedos
+  if (extCount === 2 && extended[1] && extended[2]) {
+    // Detectar giro de muñeca: si el eje de la mano tiene rotación lateral
+    if (wristPrev !== null) {
+      const deltaAngle = wristAngle - wristPrev;
+      if (Math.abs(deltaAngle) > 0.04) {
+        holoRotY += deltaAngle * 2.0;
+        wristPrev = wristAngle;
+        return GESTURE_DB.WRIST;
+      }
+    }
+    wristPrev = wristAngle;
+    return GESTURE_DB.TWO;
+  }
+
+  // Palma abierta (4+ dedos)
+  if (extCount >= 4) {
+    // Detectar barrido lateral rápido = magnético
+    if (handSpeed > 4.5) {
+      magneticMode = true; magneticTimer = 0;
+      return GESTURE_DB.SWEEP;
+    }
+    // Thumb + index muy separados = SCALE
+    if (thumbSpread > 0.28 && extended[0]) return GESTURE_DB.SCALE;
+    // Detectar arrastre (palm + movimiento moderado)
+    if (handSpeed > 1.5) return GESTURE_DB.DRAG;
+    return GESTURE_DB.PALM;
+  }
+
+  // 3 dedos = DRAG por defecto
+  if (extCount === 3) return GESTURE_DB.DRAG;
+
+  return { g:'MANO', icon:'✋', desc:'Detectada', physics:'NONE' };
+}
+
+document.getElementById('btncam').addEventListener('click', async () => {
+  const btn = document.getElementById('btncam');
+  if (btn.dataset.on === '1') {
+    if (camUtil) camUtil.stop();
+    vid.style.display = 'none'; handOn = false;
+    btn.dataset.on = '0'; btn.textContent = '📷 HAND TRACKING';
+    btn.classList.remove('on');
+    gesture = { g: 'NONE', icon: '—', desc: '', physics: 'NONE' };
+    updateGestureBadge();
+    document.getElementById('hand-cursor').style.display = 'none';
+    setStatus('HAND TRACKING OFF');
+    return;
+  }
+  try {
+    btn.textContent = '⏳ CARGANDO...';
+    mpHands = new Hands({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
+    mpHands.setOptions({ maxNumHands:1, modelComplexity:0, minDetectionConfidence:0.55, minTrackingConfidence:0.55 });
+
+    mpHands.onResults(res => {
+      if (res.multiHandLandmarks && res.multiHandLandmarks.length > 0) {
+        const lm = res.multiHandLandmarks[0];
+        const palm = lm[9];
+
+        // Posición de mano en espacio 3D
+        const newHx = (1 - palm.x) * 14 - 7;
+        const newHy = -(palm.y * 14 - 7);
+        const newHz = -palm.z * 6;
+
+        // Calcular velocidad
+        handVelX = newHx - hx;
+        handVelY = newHy - hy;
+        handVelZ = newHz - hz;
+        hx = newHx; hy = newHy; hz = newHz;
+        handOn = true;
+
+        // Detectar gesto continuo
+        const g = detectGesture(lm);
+
+        // Actualizar drag offset
+        if (g.physics === 'DRAG') {
+          if (!dragActive) {
+            dragActive = true;
+            dragStartHx = hx; dragStartHy = hy;
+            dragStartOx = holoOffsetX; dragStartOy = holoOffsetY;
+       
+          } else {
+            holoOffsetX = dragStartOx + (hx - dragStartHx) * 0.5;
+            holoOffsetY = dragStartOy + (hy - dragStartHy) * 0.5;
+          }
+        } else {
+          dragActive = false;
         }
 
-        function setShape(shape) {
-            document.getElementById('ai-status').innerText = "GENERANDO FORMA: " + shape.toUpperCase();
-            const count = particleCount;
-            for (let i = 0; i < count; i++) {
-                const i3 = i * 3;
-                let x, y, z, r=0, g=1, b=1;
-                
-                if (shape === 'sphere') {
-                    const theta = Math.random() * Math.PI * 2;
-                    const phi = Math.acos((Math.random() * 2) - 1);
-                    const rad = 3;
-                    x = rad * Math.sin(phi) * Math.cos(theta);
-                    y = rad * Math.sin(phi) * Math.sin(theta);
-                    z = rad * Math.cos(phi);
-                } else if (shape === 'cube') {
-                    x = (Math.random() - 0.5) * 6;
-                    y = (Math.random() - 0.5) * 6;
-                    z = (Math.random() - 0.5) * 6;
-                    r=1; g=0.2; b=1;
-                } else if (shape === 'dna') {
-                    const t = (i / count) * Math.PI * 12;
-                    const strand = i % 2 === 0 ? 1 : -1;
-                    x = Math.cos(t) * 2 * strand;
-                    y = (i / count) * 10 - 5;
-                    z = Math.sin(t) * 2 * strand;
-                    r=0; g=1; b=0.5;
-                } else if (shape === 'galaxy') {
-                    const angle = Math.random() * Math.PI * 10;
-                    const radius = Math.random() * 4;
-                    x = Math.cos(angle) * radius;
-                    y = (Math.random() - 0.5) * 0.8;
-                    z = Math.sin(angle) * radius;
-                    r=0.6; g=0; b=1;
-                } else { // torus
-                    const u = Math.random() * Math.PI * 2;
-                    const v = Math.random() * Math.PI * 2;
-                    x = (3 + 1 * Math.cos(v)) * Math.cos(u);
-                    y = (3 + 1 * Math.cos(v)) * Math.sin(u);
-                    z = 1 * Math.sin(v);
-                    r=1; g=0.6; b=0;
-                }
-                
-                tgtArray[i3] = x; tgtArray[i3+1] = y; tgtArray[i3+2] = z;
-                colArray[i3] = r; colArray[i3+1] = g; colArray[i3+2] = b;
-            }
-            geom.attributes.color.needsUpdate = true;
-            currentMode = 'ARMAR';
-            updateActiveButton('act-armar');
+        // Pinch scale
+        if (g.physics === 'SCALE') {
+          const thumbDist = Math.sqrt(
+            (lm[4].x-lm[8].x)**2 + (lm[4].y-lm[8].y)**2
+          );
+          if (!pinchActive) {
+            pinchActive = true; pinchStartDist = thumbDist;
+            pinchStartScale = holoScale;
+          } else {
+            holoScale = pinchStartScale * (thumbDist / (pinchStartDist + 0.001));
+            holoScale = Math.max(0.2, Math.min(3.5, holoScale));
+          }
+        } else {
+          pinchActive = false;
         }
 
-        // --- PROCESAMIENTO DE IMAGEN A 3D ---
-        document.getElementById('img-upload').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            document.getElementById('ai-status').innerText = "ANALIZANDO IMAGEN...";
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                const maxDim = 120; // Resolución de muestreo
-                const scale = Math.min(maxDim / img.width, maxDim / img.height);
-                canvas.width = img.width * scale;
-                canvas.height = img.height * scale;
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-                const targets = [], cols = [];
-                
-                for (let y = 0; y < canvas.height; y++) {
-                    for (let x = 0; x < canvas.width; x++) {
-                        const i = (y * canvas.width + x) * 4;
-                        if (imageData[i+3] > 128) { // Si el pixel es visible
-                            targets.push({
-                                x: (x - canvas.width/2) * 0.06,
-                                y: -(y - canvas.height/2) * 0.06,
-                                z: (Math.random() - 0.5) * 1.5
-                            });
-                            cols.push({
-                                r: imageData[i]/255,
-                                g: imageData[i+1]/255,
-                                b: imageData[i+2]/255
-                            });
-                        }
-                    }
-                }
-                
-                // Mezclar para que el ensamblaje sea orgánico
-                for (let i = targets.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [targets[i], targets[j]] = [targets[j], targets[i]];
-                    [cols[i], cols[j]] = [cols[j], cols[i]];
-                }
-                
-                // Aplicar a las partículas
-                const count = Math.min(particleCount, targets.length);
-                for (let i = 0; i < count; i++) {
-                    const i3 = i * 3;
-                    tgtArray[i3] = targets[i].x;
-                    tgtArray[i3+1] = targets[i].y;
-                    tgtArray[i3+2] = targets[i].z;
-                    colArray[i3] = cols[i].r;
-                    colArray[i3+1] = cols[i].g;
-                    colArray[i3+2] = cols[i].b;
-                }
-                
-                // Rellenar el resto con una esfera difusa
-                for (let i = count; i < particleCount; i++) {
-                    const i3 = i * 3;
-                    const theta = Math.random() * Math.PI * 2;
-                    const phi = Math.acos((Math.random() * 2) - 1);
-                    const rad = 4 + Math.random() * 2;
-                    tgtArray[i3] = rad * Math.sin(phi) * Math.cos(theta);
-                    tgtArray[i3+1] = rad * Math.sin(phi) * Math.sin(theta);
-                    tgtArray[i3+2] = rad * Math.cos(phi);
-                    colArray[i3] = 0.2; colArray[i3+1] = 0.2; colArray[i3+2] = 0.2;
-                }
-                
-                geom.attributes.color.needsUpdate = true;
-                geom.attributes.position.needsUpdate = true;
-                currentMode = 'ARMAR';
-                updateActiveButton('act-armar');
-                document.getElementById('ai-status').innerText = "IMAGEN PROCESADA · PROYECCIÓN 3D LISTA";
-            };
-            img.src = URL.createObjectURL(file);
-        });
+        // Actualizar cursor de mano en pantalla
+        const cursor = document.getElementById('hand-cursor');
+        cursor.style.display = 'block';
+        cursor.style.left = ((1 - palm.x) * 100) + '%';
+        cursor.style.top  = (palm.y * 100) + '%';
+        cursor.className = '';
+        if      (g.physics === 'GRAB'    || g.physics === 'PINCH')    cursor.classList.add('pinch');
+        else if (g.physics === 'COMPRESS')  cursor.classList.add('fist');
+        else if (g.physics === 'ATTRACT')   cursor.classList.add('palm');
+        else if (g.physics === 'THROW')     cursor.classList.add('throw');
+        else if (g.physics === 'MAGNETIC')  cursor.classList.add('mag');
 
-        // --- BUCLE DE ANIMACIÓN Y FÍSICA ---
-        function animate() {
-            requestAnimationFrame(animate);
-            
-            // Stats
-            frames++;
-            const now = Date.now();
-            if (now - lastTime >= 1000) {
-                document.getElementById('fps').innerText = frames;
-                frames = 0;
-                lastTime = now;
-                document.getElementById('time').innerText = ((now - startTime) / 1000).toFixed(0) + 's';
-            }
-            
-            const count = particleCount;
-            const f = fuerza;
-            
-            for (let i = 0; i < count; i++) {
-                const i3 = i * 3;
-                let fx = 0, fy = 0, fz = 0;
-                
-                // Interacción con la mano / mouse
-                if (handActive || isHandDetected) {
-                    const dx = handX - posArray[i3];
-                    const dy = handY - posArray[i3+1];
-                    const dz = handZ - posArray[i3+2];
-                    const dist = Math.sqrt(dx*dx + dy*dy + dz*dz) + 0.1;
-                    
-                    if (currentMode === 'ATRAER') {
-                        fx += dx * f * 0.015;
-                        fy += dy * f * 0.015;
-                        fz += dz * f * 0.015;
-                    } else if (currentMode === 'REPELER') {
-                        if (dist < 3.5) {
-                            fx -= (dx / dist) * f * 0.15;
-                            fy -= (dy / dist) * f * 0.15;
-                            fz -= (dz / dist) * f * 0.15;
-                        }
-                    } else if (currentMode === 'GIRO') {
-                        fx += -dy * f * 0.08;
-                        fy += dx * f * 0.08;
-                    } else if (currentMode === 'MOLDEAR') {
-                        if (dist < 2.5) {
-                            fx -= (dx / dist) * f * 0.08;
-                            fy -= (dy / dist) * f * 0.08;
-                        }
-                    }
-                }
-                
-                // Fuerza de retorno a la forma objetivo (ARMAR)
-                const spring = (currentMode === 'ARMAR') ? 0.06 : 0.025;
-                fx += (tgtArray[i3] - posArray[i3]) * spring;
-                fy += (tgtArray[i3+1] - posArray[i3+1]) * spring;
-                fz += (tgtArray[i3+2] - posArray[i3+2]) * spring;
-                
-                // Integración de velocidad con amortiguación
-                velArray[i3] += fx;
-                velArray[i3+1] += fy;
-                velArray[i3+2] += fz;
-                
-                velArray[i3] *= 0.88;
-                velArray[i3+1] *= 0.88;
-                velArray[i3+2] *= 0.88;
-                
-                posArray[i3] += velArray[i3];
-                posArray[i3+1] += velArray[i3+1];
-                posArray[i3+2] += velArray[i3+2];
-            }
-            
-            geom.attributes.position.needsUpdate = true;
-            
-            // Rotación automática del conjunto
-            if (rotSpeed > 0) {
-                particles.rotation.y += rotSpeed * 0.01;
-            }
-            
-            renderer.render(scene, camera);
+        // Actualizar gesto si cambió
+        if (g.g !== gestureLabel) {
+          gestureLabel = g.g;
+          gesture = g;
+          updateGestureBadge();
+          flashGestureIcon(g.icon);
+          setStatus('✋ ' + g.g.toUpperCase() + ' · ' + g.desc, '#0f0');
+        } else {
+          gesture = g; // actualizar physics aunque no cambió label
         }
 
-        // --- MEDIAPIPE HAND TRACKING ---
-        const videoElement = document.getElementById('input_video');
-        let hands;
-        let cameraUtils;
+      } else {
+        handOn = false; dragActive = false; pinchActive = false; wristPrev = null;
+        gesture = { g: 'NONE', icon: '—', desc: '', physics: 'NONE' };
+        gestureLabel = 'NONE';
+        document.getElementById('hand-cursor').style.display = 'none';
+        updateGestureBadge();
+        setStatus('BUSCANDO MANO...', 'var(--m)');
+      }
+    });
 
-        document.getElementById('btn-cam').addEventListener('click', async () => {
-            const btn = document.getElementById('btn-cam');
-            if (btn.innerText.includes('ACTIVAR')) {
-                try {
-                    btn.innerText = "⏳ CARGANDO IA...";
-                    
-                    hands = new Hands({locateFile: (file) => {
-                        return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-                    }});
-                    
-                    hands.setOptions({
-                        maxNumHands: 1,
-                        modelComplexity: 1,
-                        minDetectionConfidence: 0.6,
-                        minTrackingConfidence: 0.6
-                    });
-                    
-                    hands.onResults((results) => {
-                        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                            isHandDetected = true;
-                            const lm = results.multiHandLandmarks[0][8]; // Punta del índice
-                            handX = (1 - lm.x) * 10 - 5; // Mapear a espacio 3D
-                            handY = -(lm.y * 10 - 5);
-                            handZ = -lm.z * 5;
-                            handActive = true;
-                            
-                            document.getElementById('ai-status').innerText = "✋ MANO DETECTADA · INTERACTUANDO";
-                            document.getElementById('ai-status').style.color = "#0f0";
-                        } else {
-                            isHandDetected = false;
-                            handActive = false;
-                            document.getElementById('ai-status').innerText = "BUSCANDO MANO EN CÁMARA...";
-                            document.getElementById('ai-status').style.color = "var(--secondary)";
-                        }
-                    });
-                    
-                    cameraUtils = new Camera(videoElement, {
-                        onFrame: async () => {
-                            await hands.send({image: videoElement});
-                        },
-                        width: 320,
-                        height: 240
-                    });
-                    
-                    await cameraUtils.start();
-                    videoElement.style.display = 'block';
-                    btn.innerText = "📷 HAND TRACKING ON";
-                    btn.style.borderColor = "#0f0";
-                    btn.style.color = "#0f0";
-                    
-                } catch (err) {
-                    console.error(err);
-                    alert("No se pudo acceder a la cámara. Usando modo mouse como fallback.");
-                    btn.innerText = "🖱 MODO MOUSE ACTIVO";
-                    handActive = true; // Fallback a mouse
-                }
-            } else {
-                // Detener
-                if (cameraUtils) cameraUtils.stop();
-                videoElement.style.display = 'none';
-                btn.innerText = "📷 ACTIVAR HAND TRACKING";
-                btn.style.borderColor = "var(--primary)";
-                btn.style.color = "#fff";
-                isHandDetected = false;
-                handActive = false;
-                document.getElementById('ai-status').innerText = "SISTEMA EN ESPERA";
-            }
-        });
+    camUtil = new Camera(vid, {
+      onFrame: async () => { await mpHands.send({ image: vid }); },
+      width: 320, height: 240
+    });
+    await camUtil.start();
+    vid.style.display = 'block';
+    btn.textContent = '📷 ON'; btn.dataset.on = '1'; btn.classList.add('on');
+    setStatus('CÁMARA ACTIVA · DETECCIÓN EN CURSO', '#0f0');
+  } catch(err) {
+    console.error(err);
+    btn.textContent = '🖱 MODO MOUSE';
+    setStatus('CÁMARA NO DISPONIBLE · MODO MOUSE', 'var(--m)');
+  }
+});
 
-        // Fallback a interacción con mouse si no hay cámara
-        window.addEventListener('mousemove', (e) => {
-            if (!isHandDetected && document.getElementById('btn-cam').innerText.includes('MOUSE')) {
-                handX = (e.clientX / window.innerWidth) * 10 - 5;
-                handY = -(e.clientY / window.innerHeight) * 10 + 5;
-                handZ = 0;
-                handActive = true;
-            }
-        });
-        window.addEventListener('mouseleave', () => { handActive = false; });
+function updateGestureBadge() {
+  document.getElementById('g-icon').textContent = gesture.icon || '—';
+  document.getElementById('g-name').textContent = gesture.g   || 'SIN MANO';
+  document.getElementById('g-desc').textContent = gesture.desc || 'Activa el tracking';
+}
 
-        // --- BRIDGE: enviar comandos al engine C++ en localhost:8080 ---
-        const ENGINE_URL = 'http://localhost:8080/command';
-        let engineConnected = false;
+function flashGestureIcon(icon) {
+  const gind = document.getElementById('gind');
+  gind.textContent = icon;
+  gind.style.opacity = '1';
+  setTimeout(() => gind.style.opacity = '0', 700);
+}
 
-        function sendToEngine(action, shape) {
-            fetch(ENGINE_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: action || currentMode, force: fuerza, shape: shape || 'NONE' })
-            })
-            .then(() => {
-                if (!engineConnected) {
-                    engineConnected = true;
-                    document.getElementById('ai-status').innerText = "⚡ ENGINE C++ CONECTADO";
-                    document.getElementById('ai-status').style.color = "#0f0";
-                }
-            })
-            .catch(() => {
-                if (engineConnected) {
-                    engineConnected = false;
-                    document.getElementById('ai-status').innerText = "ENGINE C++ OFFLINE · MODO SOLO WEB";
-                    document.getElementById('ai-status').style.color = "var(--secondary)";
-                }
-            });
-        }
+// Mouse fallback
+window.addEventListener('mousemove', e => {
+  if (!handOn) {
+    const newHx = (e.clientX / innerWidth)  * 14 - 7;
+    const newHy = -(e.clientY / innerHeight) * 14 + 7;
+    handVelX = newHx - hx; handVelY = newHy - hy;
+    hx = newHx; hy = newHy; hz = 0;
+  }
+});
 
-        // Ping inicial al engine
-        sendToEngine('ARMAR', 'SPHERE');
+// ── UI CONTROLES ──────────────────────────────────
+function updateBtn(id) {
+  document.querySelectorAll('.abtn').forEach(b => b.classList.remove('on'));
+  const el = document.getElementById(id);
+  if (el) el.classList.add('on');
+}
 
-        // --- CONTROLES DE UI ---
-        function updateActiveButton(id) {
-            document.querySelectorAll('.action-group button').forEach(b => b.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-        }
+function setMode(m, btnId) {
+  manualMode = m; updateBtn(btnId);
+}
 
-        document.getElementById('act-armar').addEventListener('click', () => { currentMode = 'ARMAR'; updateActiveButton('act-armar'); sendToEngine('ARMAR'); });
-        document.getElementById('act-atraer').addEventListener('click', () => { currentMode = 'ATRAER'; updateActiveButton('act-atraer'); sendToEngine('ATRAER'); });
-        document.getElementById('act-repeler').addEventListener('click', () => { currentMode = 'REPELER'; updateActiveButton('act-repeler'); sendToEngine('REPELER'); });
-        document.getElementById('act-giro').addEventListener('click', () => { currentMode = 'GIRO'; updateActiveButton('act-giro'); sendToEngine('GIRO'); });
-        document.getElementById('act-moldear').addEventListener('click', () => { currentMode = 'MOLDEAR'; updateActiveButton('act-moldear'); sendToEngine('MOLDEAR'); });
+function triggerExplode() {
+  exploding = true;
+  setTimeout(() => { exploding = false; }, 1200);
+  updateBtn('a-explotar');
+  setTimeout(() => updateBtn('a-armar'), 1200);
+}
 
-        document.getElementById('rot').addEventListener('input', (e) => {
-            rotSpeed = parseFloat(e.target.value);
-            document.getElementById('rot-val').innerText = rotSpeed.toFixed(1);
-        });
+// Slider: partículas
+document.getElementById('sldens').addEventListener('change', e => {
+  const v = parseInt(e.target.value);
+  document.getElementById('vdens').innerText = (v/1000).toFixed(0)+'K';
+  rebuildGeometry(v); setShape('sphere');
+});
+document.getElementById('sldens').addEventListener('input', e => {
+  document.getElementById('vdens').innerText = (parseInt(e.target.value)/1000).toFixed(0)+'K';
+});
+document.getElementById('slrot').addEventListener('input', e => {
+  rotSpeedAuto = parseFloat(e.target.value);
+  document.getElementById('vrot').innerText = rotSpeedAuto.toFixed(1);
+});
+document.getElementById('slspring').addEventListener('input', e => {
+  document.getElementById('vspring').innerText = parseFloat(e.target.value).toFixed(2);
+});
+document.getElementById('slsize').addEventListener('input', e => {
+  const v = parseFloat(e.target.value);
+  document.getElementById('vsize').innerText = v.toFixed(2);
+  if (mat) mat.size = v;
+});
 
-        document.getElementById('fuerza').addEventListener('input', (e) => {
-            fuerza = parseFloat(e.target.value);
-            document.getElementById('fuerza-val').innerText = fuerza;
-            sendToEngine(currentMode); // notificar nueva fuerza al engine
-        });
+// Añadir slider fuerza oculto para compatibilidad
+const fuerzaSlider = document.createElement('input');
+fuerzaSlider.type='range'; fuerzaSlider.id='slfuerza'; fuerzaSlider.min=0.5; fuerzaSlider.max=8; fuerzaSlider.value=3; fuerzaSlider.style.display='none';
+document.body.appendChild(fuerzaSlider);
 
-        document.getElementById('dens').addEventListener('change', (e) => {
-            const val = parseInt(e.target.value);
-            document.getElementById('dens-val').innerText = (val/1000) + 'K';
-            rebuildGeometry(val);
-            setShape('sphere');
-        });
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
 
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+function setStatus(msg, color) {
+  const el = document.getElementById('status');
+  el.innerText = msg; el.style.color = color || '';
+}
 
-        // Iniciar
-        init();
-    </script>
+// ── IMAGEN → PARTÍCULAS 3D ────────────────────────
+document.getElementById('imgup').addEventListener('change', (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  setStatus('ANALIZANDO IMAGEN...');
+  document.getElementById('progwrap').style.display = 'block';
+  document.getElementById('progbar').style.width = '0%';
+  const img = new Image();
+  img.onload = () => {
+    const MAX_SIDE = particleCount >= 100000 ? 400 : 200;
+    const scale = Math.min(MAX_SIDE / img.width, MAX_SIDE / img.height);
+    const W = Math.round(img.width * scale), H = Math.round(img.height * scale);
+    const cvs = document.createElement('canvas');
+    cvs.width = W; cvs.height = H;
+    const ctx = cvs.getContext('2d');
+    ctx.drawImage(img, 0, 0, W, H);
+    const imgd = ctx.getImageData(0, 0, W, H).data;
+    const gray = new Float32Array(W * H);
+    for (let i = 0; i < W * H; i++) {
+      gray[i] = (imgd[i*4]*0.299 + imgd[i*4+1]*0.587 + imgd[i*4+2]*0.114) / 255;
+    }
+    const sobel = new Float32Array(W * H); let maxS = 0;
+    for (let y = 1; y < H-1; y++) for (let x = 1; x < W-1; x++) {
+      const gx = -gray[(y-1)*W+(x-1)] + gray[(y-1)*W+(x+1)] - 2*gray[y*W+(x-1)] + 2*gray[y*W+(x+1)] - gray[(y+1)*W+(x-1)] + gray[(y+1)*W+(x+1)];
+      const gy = -gray[(y-1)*W+(x-1)] - 2*gray[(y-1)*W+x] - gray[(y-1)*W+(x+1)] + gray[(y+1)*W+(x-1)] + 2*gray[(y+1)*W+x] + gray[(y+1)*W+(x+1)];
+      const mag = Math.sqrt(gx*gx+gy*gy);
+      sobel[y*W+x] = mag; if (mag > maxS) maxS = mag;
+    }
+    const pts = []; const threshold = 0.15;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const idx4 = (y*W+x)*4;
+      if (imgd[idx4+3] > 50 && gray[y*W+x] > threshold) {
+        const depth = (sobel[y*W+x]/(maxS||1))*3.0 + gray[y*W+x]*1.5;
+        pts.push(x, y, depth, imgd[idx4]/255, imgd[idx4+1]/255, imgd[idx4+2]/255);
+      }
+    }
+    for (let i = pts.length/6-1; i > 0; i--) {
+      const j = Math.floor(Math.random()*(i+1));
+      const i6=i*6, j6=j*6;
+      for (let k=0;k<6;k++){const tmp=pts[i6+k];pts[i6+k]=pts[j6+k];pts[j6+k]=tmp;}
+    }
+    const scaleX = 0.028, scaleY = 0.028;
+    const count = Math.min(particleCount, pts.length/6);
+    for (let i = 0; i < count; i++) {
+      const i3=i*3, p6=i*6;
+      tgt[i3]=(pts[p6]-W*0.5)*scaleX; tgt[i3+1]=-(pts[p6+1]-H*0.5)*scaleY; tgt[i3+2]=pts[p6+2]*0.4;
+      col[i3]=pts[p6+3]; col[i3+1]=pts[p6+4]; col[i3+2]=pts[p6+5]; alive[i]=1;
+    }
+    for (let i=count;i<particleCount;i++){
+      const i3=i*3; const a=Math.random()*6.28, b2=Math.random()*3.14; const r2=6+Math.random()*3;
+      tgt[i3]=r2*Math.sin(b2)*Math.cos(a); tgt[i3+1]=r2*Math.sin(b2)*Math.sin(a); tgt[i3+2]=r2*Math.cos(b2);
+      col[i3]=0.05; col[i3+1]=0.05; col[i3+2]=0.08;
+    }
+    geom.attributes.color.needsUpdate = true;
+    document.getElementById('progbar').style.width = '100%';
+    setTimeout(() => document.getElementById('progwrap').style.display = 'none', 800);
+    manualMode='ARMAR'; updateBtn('a-armar');
+    setStatus(`IMAGEN 3D · ${count>=1000?(count/1000).toFixed(0)+'K':count} PTS`);
+  };
+  img.src = URL.createObjectURL(f);
+});
+
+// ── C++ ENGINE BRIDGE ─────────────────────────────
+const ENG = 'http://localhost:8080/command';
+function sendEng(action, shape) {
+  fetch(ENG, { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ action: action || manualMode, force: 3, shape: shape || 'NONE' })
+  }).then(() => setStatus('⚡ ENGINE C++ CONECTADO', '#0f0')).catch(() => {});
+}
+sendEng('ARMAR','SPHERE');
+
+// ── PUENTE DE VOZ CON VINI ─────────────────────────
+// Estas funciones quedan expuestas en window para que el <script type="module">
+// que carga main.js (al final del body) pueda controlar el holograma desde
+// comandos de voz. Se definen ACÁ y no en main.js porque necesitan cerrar
+// sobre variables internas del motor (holoScale, holoOffsetX, manualMode...)
+// que un script de tipo module no puede ver directamente.
+
+const VOICE_SHAPE_MAP = {
+  esfera: 'sphere',
+  cubo: 'cube',
+  toroide: 'torus',
+  estrella: 'star',
+  corazón: 'heart',
+};
+
+const VOICE_COLOR_MAP = {
+  azul:     [0, 0.8, 1],
+  rojo:     [1, 0.15, 0.15],
+  verde:    [0.1, 1, 0.3],
+  amarillo: [1, 0.9, 0],
+  blanco:   [1, 1, 1],
+  negro:    [0.08, 0.08, 0.1],
+  morado:   [0.6, 0.1, 1],
+  naranja:  [1, 0.5, 0],
+  rosa:     [1, 0.4, 0.8],
+  dorado:   [1, 0.84, 0],
+  plateado: [0.75, 0.75, 0.8],
+};
+
+function voiceCreate(params) {
+  const shapeKey = VOICE_SHAPE_MAP[params.type];
+  if (shapeKey) {
+    setShape(shapeKey);
+  } else {
+    // pirámide / cilindro / cono / animal / persona / casa / árbol: el motor
+    // todavía no tiene esa geometría. Usamos esfera de base y avisamos,
+    // en vez de fallar en silencio.
+    setShape('sphere');
+    setStatus('🎙 VINI · "' + (params.type || 'objeto') + '" no implementado, esfera de base', 'var(--m)');
+  }
+  if (params.color) voiceColor(params.color);
+}
+
+function voiceColor(colorName) {
+  const rgb = VOICE_COLOR_MAP[colorName];
+  if (!rgb) return;
+  for (let i = 0; i < particleCount; i++) {
+    const i3 = i * 3;
+    col[i3] = rgb[0]; col[i3+1] = rgb[1]; col[i3+2] = rgb[2];
+  }
+  geom.attributes.color.needsUpdate = true;
+  setStatus('🎙 VINI · COLOR ' + colorName.toUpperCase());
+}
+
+function voiceScale(factor) {
+  holoScale = Math.max(0.2, Math.min(3.5, holoScale * (factor || 1)));
+  setStatus('🎙 VINI · ESCALA ' + holoScale.toFixed(2));
+}
+
+function voiceMove(direction) {
+  if (!direction) return;
+  const STEP = 1.2;
+  holoOffsetX += direction[0] * STEP;
+  holoOffsetY += direction[1] * STEP;
+  holoOffsetZ += direction[2] * STEP;
+  setStatus('🎙 VINI · MOVIENDO HOLOGRAMA');
+}
+
+function voiceStop() {
+  rotSpeedAuto = 0;
+  exploding = false;
+  manualMode = 'ARMAR'; updateBtn('a-armar');
+  setStatus('🎙 VINI · DETENIDO');
+}
+
+function voiceDelete() {
+  triggerExplode();
+  setTimeout(() => setShape('sphere'), 1300);
+}
+
+window.voiceCreate = voiceCreate;
+window.voiceColor  = voiceColor;
+window.voiceScale  = voiceScale;
+window.voiceMove   = voiceMove;
+window.voiceStop   = voiceStop;
+window.voiceDelete = voiceDelete;
+
+// ── START ─────────────────────────────────────────
+init();
+</script>
+
+<!-- Vini (voz) se carga como módulo: importa AI/vini.js y AI/eventBus.js,
+     y conecta los eventos scene:* / vini:* con las funciones de arriba.
+     Asumiendo que main.js vive en la misma carpeta que este HTML —
+     si tu estructura es distinta, ajustá el src. -->
+<script type="module" src="./main.js"></script>
 </body>
 </html>
